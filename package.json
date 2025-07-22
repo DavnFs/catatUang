@@ -1,0 +1,27 @@
+{
+  "name": "catatuang",
+  "version": "1.0.0",
+  "description": "Serverless expense tracker via WhatsApp",
+  "main": "api/webhook.py",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod",
+    "test": "python examples/test_api.py"
+  },
+  "keywords": [
+    "whatsapp",
+    "expense-tracker",
+    "serverless",
+    "google-sheets",
+    "vercel"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/catatuang.git"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

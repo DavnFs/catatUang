@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/*.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    }
+  ],
+  "env": {
+    "GOOGLE_SHEETS_ID": "@google_sheets_id",
+    "GOOGLE_SERVICE_ACCOUNT_KEY": "@google_service_account_key",
+    "TELEGRAM_BOT_TOKEN": "@telegram_bot_token"
+  },
+  "functions": {
+    "api/*.py": {
+      "maxDuration": 30
+    }
+  }
+}

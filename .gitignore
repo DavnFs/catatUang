@@ -1,0 +1,60 @@
+# Environment files
+.env
+.env.local
+.env.production
+
+# Vercel
+.vercel
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Dependencies
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Credentials (NEVER commit)
+credentials.json
+service-account.json
+etlpipeline-458206-63b42d639ca2.json
+*.key
+*.pem
+
+# Local data
+data.csv
+*.csv
+
+# Testing
+test_results/
+temp/
+.temp/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Temporary development files
+*.tmp
+.DS_Store_?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
