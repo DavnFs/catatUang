@@ -36,14 +36,14 @@ python examples/test_api.py
 Pastikan semua test pass sebelum submit PR:
 
 ```bash
-# API testing
+# Test
 python examples/test_api.py
 
 # Manual testing
-curl http://localhost:3000/api/webhook
+curl http://localhost:3000/api/telegram-webhook
 
-# WhatsApp bot testing (optional)
-node examples/whatsapp_bot.js
+# Telegram bot testing (optional)  
+python examples/telegram_bot_local.py
 ```
 
 ## 📝 Code Style
@@ -114,7 +114,7 @@ What actually happens
 
 ## Environment
 - Deployment: Vercel/Local
-- WhatsApp Provider: Twilio/Cloud API/etc
+- Telegram Bot: @BotFather token
 - Browser/Node version: if applicable
 
 ## Additional Context

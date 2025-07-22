@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CatatUang - Telegram Expense Tracker Bot</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+
+        .nav-links a:hover {
+            opacity: 0.8;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 4rem 0 6rem;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+        }
+
+        .features {
+            background: white;
+            padding: 6rem 0;
+            margin-top: -3rem;
+            border-radius: 3rem 3rem 0 0;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            text-align: center;
+            padding: 2rem;
+            border-radius: 20px;
+            background: #f8f9fa;
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .demo {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 6rem 0;
+            color: white;
+            text-align: center;
+        }
+
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .chat-demo {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 3rem 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .message {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 1rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+        }
+
+        .setup {
+            background: white;
+            padding: 6rem 0;
+        }
+
+        .setup-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .step {
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0 auto 1rem;
+        }
+
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 3rem 0;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .footer-links a:hover {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <a href="#" class="logo">
+                <i class="fas fa-robot"></i> CatatUang
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Fitur</a></li>
+                <li><a href="#demo">Demo</a></li>
+                <li><a href="#setup">Setup</a></li>
+                <li><a href="https://github.com/yourusername/catatuang" target="_blank">
+                    <i class="fab fa-github"></i> GitHub
+                </a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1><i class="fas fa-chart-line"></i> CatatUang</h1>
+                <p>Bot Telegram serverless untuk mencatat pengeluaran otomatis. Deploy sekali, pakai selamanya!</p>
+                <div class="cta-buttons">
+                    <a href="https://t.me/moneyrec_bot" class="btn btn-primary" target="_blank">
+                        <i class="fab fa-telegram"></i> Try Live Demo
+                    </a>
+                    <a href="https://vercel.com/new/clone?repository-url=https://github.com/yourusername/catatuang" class="btn" target="_blank">
+                        <i class="fas fa-rocket"></i> Deploy to Vercel
+                    </a>
+                    <a href="https://github.com/yourusername/catatuang" class="btn" target="_blank">
+                        <i class="fab fa-github"></i> View Source
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="features">
+            <div class="container">
+                <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 1rem;">✨ Fitur Unggulan</h2>
+                <p style="text-align: center; color: #666; font-size: 1.1rem;">Solusi pencatatan keuangan yang simple dan powerful</p>
+                
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fab fa-telegram"></i>
+                        </div>
+                        <h3>Chat Natural</h3>
+                        <p>Catat pengeluaran dengan chat biasa di Telegram. Tidak perlu aplikasi khusus!</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-table"></i>
+                        </div>
+                        <h3>Google Sheets</h3>
+                        <p>Data tersimpan otomatis di Google Sheets. Bisa diakses dan dianalisis kapan saja.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-cloud"></i>
+                        </div>
+                        <h3>Serverless</h3>
+                        <p>Deploy di Vercel dengan arsitektur serverless. Gratis dan scalable!</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <h3>Real-time Reports</h3>
+                        <p>Laporan harian, mingguan, dan bulanan langsung di chat Telegram.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-plus-circle"></i>
+                        </div>
+                        <h3>Pemasukan & Pengeluaran</h3>
+                        <p>Catat both income dan expense dengan format yang mudah diingat.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h3>Privacy First</h3>
+                        <p>Data Anda tersimpan di Google Sheets pribadi. Tidak ada akses dari pihak ketiga.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="demo" class="demo">
+            <div class="container">
+                <div class="demo-container">
+                    <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">🎮 Live Demo</h2>
+                    <p style="font-size: 1.1rem; margin-bottom: 2rem;">Lihat bagaimana mudahnya mencatat transaksi</p>
+                    
+                    <div class="chat-demo">
+                        <h3 style="margin-bottom: 1rem;"><i class="fab fa-telegram"></i> Chat Demo</h3>
+                        <div class="message">
+                            <strong>You:</strong> /start
+                        </div>
+                        <div class="message">
+                            <strong>CatatUang Bot:</strong> 🤖 Selamat datang di CatatUang!<br>
+                            Kirim transaksi dengan format: <code>jumlah kategori deskripsi</code>
+                        </div>
+                        <div class="message">
+                            <strong>You:</strong> 25000 makanan nasi padang
+                        </div>
+                        <div class="message">
+                            <strong>CatatUang Bot:</strong> 💸 <strong>Pengeluaran Tercatat!</strong><br>
+                            💵 Jumlah: Rp 25.000<br>
+                            📂 Kategori: Makanan<br>
+                            ✅ Data tersimpan di Google Sheets
+                        </div>
+                        <div class="message">
+                            <strong>You:</strong> +1000000 gaji salary bulanan
+                        </div>
+                        <div class="message">
+                            <strong>CatatUang Bot:</strong> 💰 <strong>Pemasukan Tercatat!</strong><br>
+                            💵 Jumlah: Rp 1.000.000<br>
+                            📂 Kategori: Gaji<br>
+                            ✅ Data tersimpan di Google Sheets
+                        </div>
+                    </div>
+                    
+                    <a href="https://t.me/moneyrec_bot" class="btn btn-primary" target="_blank">
+                        <i class="fab fa-telegram"></i> Coba Sekarang
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="setup" class="setup">
+            <div class="container">
+                <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 1rem;">🚀 Quick Setup</h2>
+                <p style="text-align: center; color: #666; font-size: 1.1rem;">Deploy bot Anda sendiri dalam 5 menit</p>
+                
+                <div class="setup-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <h3>Fork Repository</h3>
+                        <p>Fork repository CatatUang di GitHub</p>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <h3>Deploy to Vercel</h3>
+                        <p>Connect GitHub repo ke Vercel dan deploy</p>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <h3>Setup Environment</h3>
+                        <p>Set environment variables di Vercel dashboard</p>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <h3>Create Telegram Bot</h3>
+                        <p>Chat @BotFather untuk buat bot Telegram</p>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">5</div>
+                        <h3>Set Webhook</h3>
+                        <p>Jalankan script webhook setup untuk connect bot</p>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 3rem;">
+                    <a href="https://github.com/yourusername/catatuang#setup" class="btn" target="_blank">
+                        <i class="fas fa-book"></i> Detailed Setup Guide
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="https://github.com/yourusername/catatuang" target="_blank">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+                <a href="https://github.com/yourusername/catatuang/issues" target="_blank">
+                    <i class="fas fa-bug"></i> Issues
+                </a>
+                <a href="https://github.com/yourusername/catatuang/wiki" target="_blank">
+                    <i class="fas fa-book"></i> Documentation
+                </a>
+                <a href="https://t.me/moneyrec_bot" target="_blank">
+                    <i class="fab fa-telegram"></i> Live Demo
+                </a>
+            </div>
+            <p>&copy; 2025 CatatUang. Open source project built with ❤️</p>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

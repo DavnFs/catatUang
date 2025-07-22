@@ -3,6 +3,11 @@
 .env.local
 .env.production
 
+# Google Service Account Keys (NEVER COMMIT!)
+*.json
+!package.json
+!vercel.json
+
 # Vercel
 .vercel
 
