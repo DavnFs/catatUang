@@ -163,8 +163,12 @@ class handler(BaseHTTPRequestHandler):
                 return "❌ Format salah!\n\n✅ Contoh yang benar:\n• `50000 makanan nasi padang`\n• `+1000000 gaji salary`\n\nKetik /help untuk panduan lengkap."
             
             amount_str = parts[0]
-            kategori = parts[1].lower()
+            kategori_input = parts[1].lower()
             deskripsi = parts[2] if len(parts) > 2 else ""
+            
+            # Standardize category with fuzzy matching
+            kategori = self._standardize_category(kategori_input)
+            suggestion_text = self._get_category_suggestion(kategori_input, kategori)
             
             # Parse amount (check for income with + prefix)
             is_income = amount_str.startswith('+')
@@ -201,12 +205,105 @@ class handler(BaseHTTPRequestHandler):
 📝 Deskripsi: {deskripsi}
 📅 Waktu: {datetime.now().strftime('%d/%m/%Y %H:%M')}
 
-✅ Data tersimpan di Google Sheets!"""
+✅ Data tersimpan di Google Sheets!{suggestion_text}"""
             else:
                 return "❌ Gagal menyimpan data. Coba lagi dalam beberapa saat."
                 
         except Exception as e:
             return f"❌ Error: {str(e)}\n\nKetik /help untuk format yang benar."
+
+    def _standardize_category(self, input_category):
+        """Standardize category with fuzzy matching and English translation"""
+        input_category = input_category.lower().strip()
+        
+        # Standard categories (Indonesian)
+        standard_categories = {
+            'makanan': ['makanan', 'makan', 'food', 'eat', 'dining', 'snack', 'meal', 
+                       'kuliner', 'restaurant', 'resto', 'cafe', 'warung', 'delivery',
+                       'gofood', 'grabfood', 'ojol_food', 'takeaway', 'jajan'],
+            'transport': ['transport', 'transportation', 'travel', 'ojek', 'grab', 'gojek',
+                         'taxi', 'bus', 'angkot', 'motor', 'bensin', 'fuel', 'parking',
+                         'parkir', 'tol', 'toll', 'uber', 'bike', 'sepeda', 'perjalanan'],
+            'belanja': ['belanja', 'shopping', 'groceries', 'supermarket', 'mall', 'online',
+                       'tokopedia', 'shopee', 'lazada', 'bukalapak', 'clothes', 'baju',
+                       'elektronik', 'gadget', 'kosmetik', 'skincare', 'shop'],
+            'kesehatan': ['kesehatan', 'health', 'dokter', 'doctor', 'obat', 'medicine',
+                         'rumah_sakit', 'hospital', 'klinik', 'clinic', 'vitamin',
+                         'medical', 'therapy', 'terapi', 'dental', 'gigi'],
+            'hiburan': ['hiburan', 'entertainment', 'movie', 'cinema', 'bioskop', 'game',
+                       'gaming', 'hobby', 'rekreasi', 'vacation', 'liburan', 'wisata',
+                       'netflix', 'spotify', 'youtube', 'subscription', 'fun'],
+            'pendidikan': ['pendidikan', 'education', 'sekolah', 'school', 'university',
+                          'kuliah', 'kursus', 'course', 'training', 'buku', 'book',
+                          'alat_tulis', 'stationery', 'laptop', 'belajar', 'study'],
+            'utilitas': ['utilitas', 'utilities', 'listrik', 'electricity', 'air', 'water',
+                        'internet', 'wifi', 'pulsa', 'credit', 'gas', 'pdam', 'pln',
+                        'telepon', 'phone', 'tv_cable', 'indihome', 'bills'],
+            'investasi': ['investasi', 'investment', 'saham', 'stock', 'reksadana',
+                         'mutual_fund', 'crypto', 'bitcoin', 'ethereum', 'trading',
+                         'deposito', 'deposit', 'obligasi', 'bond', 'gold', 'emas'],
+            'gaji': ['gaji', 'salary', 'income', 'penghasilan', 'upah', 'wage', 'bonus',
+                    'thr', 'allowance', 'tunjangan', 'honorarium', 'fee', 'freelance',
+                    'komisi', 'commission', 'royalty', 'earnings'],
+            'lainnya': ['lainnya', 'others', 'misc', 'miscellaneous', 'random', 'other',
+                       'undefined', 'unknown', 'dll', 'etc', 'various']
+        }
+        
+        # Exact match first
+        for standard_cat, aliases in standard_categories.items():
+            if input_category in aliases:
+                return standard_cat
+        
+        # Fuzzy matching using simple similarity
+        best_match = None
+        best_score = 0
+        
+        for standard_cat, aliases in standard_categories.items():
+            for alias in aliases:
+                # Calculate similarity score
+                score = self._calculate_similarity(input_category, alias)
+                if score > best_score and score >= 0.6:  # 60% similarity threshold
+                    best_score = score
+                    best_match = standard_cat
+        
+        # If good match found, return it
+        if best_match:
+            return best_match
+            
+        # If no good match, return original
+        return input_category
+    
+    def _calculate_similarity(self, str1, str2):
+        """Calculate string similarity using simple character matching"""
+        if len(str1) == 0 or len(str2) == 0:
+            return 0
+        
+        # Convert to lowercase for comparison
+        str1, str2 = str1.lower(), str2.lower()
+        
+        # If exact match
+        if str1 == str2:
+            return 1.0
+        
+        # Calculate character-based similarity
+        set1, set2 = set(str1), set(str2)
+        intersection = len(set1 & set2)
+        union = len(set1 | set2)
+        
+        if union == 0:
+            return 0
+        
+        # Jaccard similarity + length penalty for very different lengths
+        jaccard = intersection / union
+        length_diff = abs(len(str1) - len(str2)) / max(len(str1), len(str2))
+        
+        return jaccard * (1 - length_diff * 0.3)
+    
+    def _get_category_suggestion(self, original, corrected):
+        """Get category suggestion if standardization changed the input"""
+        if corrected != original.lower():
+            return f"\n💡 *Kategori dikoreksi: '{original}' → '{corrected}'*"
+        return ""
 
     def _save_to_sheets(self, data):
         """Save data to Google Sheets"""
