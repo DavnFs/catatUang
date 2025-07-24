@@ -1,12 +1,18 @@
 import json
 import os
 import base64
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from http.server import BaseHTTPRequestHandler
 import gspread
 from google.oauth2.service_account import Credentials
 import requests
 
+# Jakarta timezone (UTC+7)
+JAKARTA_TZ = timezone(timedelta(hours=7))
+
+def get_jakarta_time():
+    """Get current time in Jakarta timezone (UTC+7)"""
+    return datetime.now(JAKARTA_TZ)
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -29,7 +35,7 @@ class handler(BaseHTTPRequestHandler):
             self._send_json_response({
                 "status": "success",
                 "message": "🤖 CatatUang Telegram Bot is running!",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": get_jakarta_time().isoformat(),
                 "version": "1.0.0"
             })
                 
@@ -61,7 +67,7 @@ class handler(BaseHTTPRequestHandler):
                     return {
                         "status": "success",
                         "message": "Message processed",
-                        "timestamp": datetime.now().isoformat()
+                        "timestamp": get_jakarta_time().isoformat()
                     }
             
             return {"status": "success", "message": "No message to process"}
@@ -183,9 +189,12 @@ class handler(BaseHTTPRequestHandler):
             if amount <= 0:
                 return "❌ Jumlah harus lebih dari 0!"
             
+            # Get Jakarta time for the transaction
+            jakarta_time = get_jakarta_time()
+            
             # Save to Google Sheets
             success = self._save_to_sheets({
-                'tanggal': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'tanggal': jakarta_time.strftime('%Y-%m-%d %H:%M:%S'),
                 'kategori': kategori,
                 'deskripsi': deskripsi,
                 'jumlah': amount if is_income else -amount,  # Negative for expenses
@@ -203,7 +212,7 @@ class handler(BaseHTTPRequestHandler):
 💵 Jumlah: {formatted_amount}
 📂 Kategori: {kategori.title()}
 📝 Deskripsi: {deskripsi}
-📅 Waktu: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+📅 Waktu: {jakarta_time.strftime('%d/%m/%Y %H:%M')} WIB
 
 ✅ Data tersimpan di Google Sheets!{suggestion_text}"""
             else:
@@ -347,24 +356,23 @@ class handler(BaseHTTPRequestHandler):
         """Generate expense report summary"""
         try:
             # Get data from report API endpoint
-            from datetime import datetime, timedelta
-            
             report_data = self._get_sheets_data()
             if not report_data:
                 return "❌ Tidak bisa mengambil data laporan."
             
-            # Filter by period
-            now = datetime.now()
+            # Filter by period using Jakarta timezone
+            jakarta_now = get_jakarta_time()
+            
             if period == 'today':
-                start_date = now.strftime('%Y-%m-%d')
+                start_date = jakarta_now.strftime('%Y-%m-%d')
                 filtered_data = [row for row in report_data if row.get('Tanggal', '').startswith(start_date)]
                 title = "📊 **Laporan Hari Ini**"
             elif period == 'week':
-                week_ago = (now - timedelta(days=7)).strftime('%Y-%m-%d')
+                week_ago = (jakarta_now - timedelta(days=7)).strftime('%Y-%m-%d')
                 filtered_data = [row for row in report_data if row.get('Tanggal', '') >= week_ago]
                 title = "📊 **Laporan 7 Hari Terakhir**"
             elif period == 'month':
-                month_start = now.strftime('%Y-%m-01')
+                month_start = jakarta_now.strftime('%Y-%m-01')
                 filtered_data = [row for row in report_data if row.get('Tanggal', '') >= month_start]
                 title = "📊 **Laporan Bulan Ini**"
             else:
@@ -387,9 +395,9 @@ class handler(BaseHTTPRequestHandler):
                 if amount < 0:  # Expense
                     categories[cat] = categories.get(cat, 0) + abs(amount)
             
-            # Format response
+            # Format response with Jakarta time
             result = f"""{title}
-📅 {now.strftime('%d/%m/%Y')}
+📅 {jakarta_now.strftime('%d/%m/%Y')} WIB
 
 💰 **Ringkasan:**
 • Pemasukan: Rp {total_income:,}
@@ -474,6 +482,6 @@ class handler(BaseHTTPRequestHandler):
         error_response = {
             "status": "error",
             "message": message,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": get_jakarta_time().isoformat()
         }
         self.wfile.write(json.dumps(error_response).encode())
