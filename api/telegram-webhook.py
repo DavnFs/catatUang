@@ -9,7 +9,7 @@ import requests
 
 # Import AI integration
 try:
-    from examples.simple_ai_integration import enhanced_transaction_response
+    from api.financial_advisor import FinancialAdvisor
     AI_ENABLED = True
 except ImportError:
     AI_ENABLED = False
@@ -325,12 +325,32 @@ class handler(BaseHTTPRequestHandler):
                 # Use AI-enhanced response if available
                 if AI_ENABLED and os.getenv('AI_INSIGHTS_ENABLED', 'true').lower() == 'true':
                     try:
-                        return enhanced_transaction_response(
+                        # Get AI insight for the transaction
+                        advisor = FinancialAdvisor()
+                        user_data = self._get_user_financial_data(user_id)
+                        
+                        ai_tip = advisor.get_transaction_advice(
                             amount=amount,
                             category=kategori,
                             description=deskripsi,
-                            is_income=is_income
-                        ) + suggestion_text
+                            user_data=user_data
+                        )
+                        
+                        # Format AI-enhanced response
+                        tipe_emoji = "💰" if is_income else "💸"
+                        tipe_text = "Pemasukan" if is_income else "Pengeluaran"
+                        formatted_amount = f"Rp {amount:,}".replace(',', '.')
+                        
+                        return f"""{tipe_emoji} **{tipe_text} Tercatat!**
+
+💵 Jumlah: {formatted_amount}
+📂 Kategori: {kategori.title()}
+📝 Deskripsi: {deskripsi}
+📅 Waktu: {jakarta_time.strftime('%d/%m/%Y %H:%M')} WIB
+
+✅ Data tersimpan di Google Sheets!
+
+{ai_tip}{suggestion_text}"""
                     except Exception as e:
                         print(f"AI response error: {e}")
                         # Fall back to standard response
@@ -1456,6 +1476,40 @@ Gunakan format: `/dailyplan [budget_harian]`
                 'lain-lain': 900000
             }
         }
+    
+    def _get_user_financial_data(self, user_id):
+        """Get user's financial data for AI analysis"""
+        try:
+            # Get data from Google Sheets
+            report_data = self._get_sheets_data()
+            if not report_data:
+                return {'total_income': 0, 'total_expense': 0, 'categories': {}}
+            
+            # Filter data for current month
+            jakarta_now = get_jakarta_time()
+            current_month = jakarta_now.strftime('%Y-%m')
+            monthly_data = [row for row in report_data if row.get('Tanggal', '').startswith(current_month)]
+            
+            # Calculate totals
+            total_income = sum(int(row.get('Jumlah', 0)) for row in monthly_data if int(row.get('Jumlah', 0)) > 0)
+            total_expense = sum(abs(int(row.get('Jumlah', 0))) for row in monthly_data if int(row.get('Jumlah', 0)) < 0)
+            
+            # Group by categories
+            categories = {}
+            for row in monthly_data:
+                if int(row.get('Jumlah', 0)) < 0:  # Expenses only
+                    cat = row.get('Kategori', 'lainnya')
+                    categories[cat] = categories.get(cat, 0) + abs(int(row.get('Jumlah', 0)))
+            
+            return {
+                'total_income': total_income,
+                'total_expense': total_expense,
+                'categories': categories,
+                'transactions_count': len(monthly_data)
+            }
+        except Exception as e:
+            print(f"Error getting user financial data: {e}")
+            return {'total_income': 0, 'total_expense': 0, 'categories': {}}
 
     def _send_json_response(self, data):
         """Send JSON response"""
