@@ -7,6 +7,14 @@ import gspread
 from google.oauth2.service_account import Credentials
 import requests
 
+# Import AI integration
+try:
+    from examples.simple_ai_integration import enhanced_transaction_response
+    AI_ENABLED = True
+except ImportError:
+    AI_ENABLED = False
+    print("AI integration not available, using standard responses")
+
 # Jakarta timezone (UTC+7)
 JAKARTA_TZ = timezone(timedelta(hours=7))
 
@@ -100,7 +108,20 @@ class handler(BaseHTTPRequestHandler):
 `+500000 bonus kinerja`"""
 
             elif command == '/help':
-                return """📚 **Panduan CatatUang Bot**
+                ai_section = ""
+                if AI_ENABLED:
+                    ai_section = """
+**🤖 AI Financial Advisor:**
+/tips - Tips hemat umum
+/advice - Analisis keuangan personal
+/budget [income] - Rekomendasi budget bulanan
+/goals [jumlah] [deskripsi] - Set financial goals
+/budgetcheck [jumlah] [hari] - Cek kelayakan budget untuk periode tertentu
+/dailyplan [budget_harian] - Rencana pengeluaran harian
+
+"""
+                
+                return f"""📚 **Panduan CatatUang Bot**
 
 **Format Pengeluaran:**
 `[jumlah] [kategori] [deskripsi]`
@@ -122,12 +143,12 @@ class handler(BaseHTTPRequestHandler):
 /yearly - Laporan tahun ini
 /categories - Kategori tersedia
 
-**� Income & Balance:**
+**💰 Income & Balance:**
 /income [jumlah] - Tambah pemasukan manual
 /balance - Lihat saldo & overview
 /expenses - Laporan pengeluaran saja
 
-**�📈 Analytics & Insights:**
+{ai_section}**📈 Analytics & Insights:**
 /trends - Trend pengeluaran bulanan
 /analytics - Analisis mendalam
 /breakdown - Breakdown per kategori dengan %
@@ -213,6 +234,44 @@ class handler(BaseHTTPRequestHandler):
             elif command == '/expenses':
                 return self._generate_expenses_only_report()
 
+            # AI Commands (if enabled)
+            elif command == '/tips' and AI_ENABLED:
+                return self._get_ai_tips()
+                
+            elif command == '/advice' and AI_ENABLED:
+                return self._get_ai_advice(f"{username}_{user_id}")
+                
+            elif command == '/budget' and AI_ENABLED:
+                args = text.split()[1:] if len(text.split()) > 1 else []
+                monthly_income = float(args[0]) if args else None
+                return self._get_ai_budget(f"{username}_{user_id}", monthly_income)
+                
+            elif command == '/goals' and AI_ENABLED:
+                args = text.split()[1:] if len(text.split()) > 1 else []
+                if len(args) >= 2:
+                    goal_amount = float(args[0])
+                    goal_desc = ' '.join(args[1:])
+                    return self._set_financial_goal(f"{username}_{user_id}", goal_amount, goal_desc)
+                else:
+                    return self._show_goals_help()
+                    
+            elif command == '/budgetcheck' and AI_ENABLED:
+                args = text.split()[1:] if len(text.split()) > 1 else []
+                if len(args) >= 2:
+                    budget_amount = float(args[0])
+                    duration_days = int(args[1])
+                    return self._check_budget_feasibility(f"{username}_{user_id}", budget_amount, duration_days)
+                else:
+                    return self._show_budgetcheck_help()
+                    
+            elif command == '/dailyplan' and AI_ENABLED:
+                args = text.split()[1:] if len(text.split()) > 1 else []
+                if args:
+                    daily_budget = float(args[0])
+                    return self._get_daily_spending_plan(daily_budget)
+                else:
+                    return self._show_dailyplan_help()
+
             else:
                 return f"❌ Command tidak dikenal: {command}\n\nKetik /help untuk panduan lengkap."
                 
@@ -263,6 +322,21 @@ class handler(BaseHTTPRequestHandler):
             })
             
             if success:
+                # Use AI-enhanced response if available
+                if AI_ENABLED and os.getenv('AI_INSIGHTS_ENABLED', 'true').lower() == 'true':
+                    try:
+                        return enhanced_transaction_response(
+                            amount=amount,
+                            category=kategori,
+                            description=deskripsi,
+                            is_income=is_income
+                        ) + suggestion_text
+                    except Exception as e:
+                        print(f"AI response error: {e}")
+                        # Fall back to standard response
+                        pass
+                
+                # Standard response (fallback)
                 tipe_emoji = "💰" if is_income else "💸"
                 tipe_text = "Pemasukan" if is_income else "Pengeluaran"
                 formatted_amount = f"Rp {amount:,}".replace(',', '.')
@@ -1129,6 +1203,259 @@ class handler(BaseHTTPRequestHandler):
         except Exception as e:
             print(f"Error sending telegram message: {e}")
             return False
+
+    # AI Command Handlers
+    def _get_ai_tips(self):
+        """Get general financial tips from AI"""
+        try:
+            from api.financial_advisor import FinancialAdvisor
+            advisor = FinancialAdvisor()
+            
+            prompt = """
+            Berikan 5 tips keuangan umum yang praktis untuk orang Indonesia.
+            
+            Format:
+            💰 TIPS KEUANGAN SMART
+            
+            1. [tip pertama]
+            2. [tip kedua]
+            3. [tip ketiga]
+            4. [tip keempat]
+            5. [tip kelima]
+            
+            Setiap tip harus actionable dan mudah diterapkan.
+            """
+            
+            response = advisor._get_ai_response(prompt)
+            return response
+            
+        except Exception as e:
+            return """💰 TIPS KEUANGAN SMART
+
+1. 💎 Sisihkan 20% penghasilan untuk tabungan dan investasi
+2. 🏠 Batasi pengeluaran kebutuhan pokok maksimal 50% income  
+3. 📊 Catat semua pengeluaran untuk kontrol yang lebih baik
+4. 🚨 Buat emergency fund minimal 6 bulan pengeluaran
+5. 📈 Mulai investasi dari sekarang, walau jumlah kecil
+
+💡 Konsistensi lebih penting daripada jumlah besar!"""
+
+    def _get_ai_advice(self, user_id):
+        """Get AI-powered financial analysis"""
+        try:
+            from api.financial_advisor import FinancialAdvisor
+            advisor = FinancialAdvisor()
+            
+            # Get user data (simplified for now)
+            user_data = {
+                'total_income': 4000000,
+                'total_expense': 2500000,
+                'categories': {
+                    'makanan': 800000,
+                    'transport': 600000,
+                    'hiburan': 400000,
+                    'belanja': 500000,
+                    'utilitas': 200000
+                }
+            }
+            
+            return advisor.get_monthly_analysis(user_data)
+            
+        except Exception as e:
+            return f"❌ Gagal menganalisis data keuangan: {str(e)}"
+
+    def _get_ai_budget(self, user_id, monthly_income):
+        """Get AI budget recommendations"""
+        try:
+            from api.financial_advisor import FinancialAdvisor
+            advisor = FinancialAdvisor()
+            
+            if monthly_income is None:
+                return """💰 SET BUDGET RECOMMENDATION
+
+Gunakan format: `/budget [penghasilan_bulanan]`
+
+**Contoh:**
+• `/budget 4000000` - Budget untuk penghasilan 4 juta
+• `/budget 6500000` - Budget untuk penghasilan 6.5 juta
+
+💡 Saya akan berikan rekomendasi budget berdasarkan prinsip 50/30/20!"""
+            
+            user_data = {'total_income': monthly_income}
+            return advisor.get_budget_recommendation(monthly_income, user_data)
+            
+        except Exception as e:
+            return f"❌ Gagal membuat rekomendasi budget: {str(e)}"
+
+    def _set_financial_goal(self, user_id, goal_amount, goal_description):
+        """Set financial goals with AI recommendations"""
+        try:
+            from api.financial_advisor import FinancialAdvisor
+            advisor = FinancialAdvisor()
+            
+            prompt = f"""
+            User ingin menabung {goal_amount:,.0f} IDR untuk {goal_description}.
+            
+            Berikan rencana menabung yang realistis dengan asumsi penghasilan menengah Indonesia (3-5 juta/bulan).
+            
+            Format:
+            🎯 RENCANA MENCAPAI GOAL
+            
+            💰 Target: {goal_amount:,.0f} IDR - {goal_description}
+            
+            📅 Timeline Options:
+            • 6 bulan: [jumlah per bulan] IDR/bulan
+            • 12 bulan: [jumlah per bulan] IDR/bulan  
+            • 24 bulan: [jumlah per bulan] IDR/bulan
+            
+            💡 Tips Mencapai Goal:
+            [3 tips praktis]
+            
+            🚀 Action Plan:
+            [langkah konkret yang bisa dimulai hari ini]
+            """
+            
+            return advisor._get_ai_response(prompt)
+            
+        except Exception as e:
+            # Fallback calculation
+            monthly_6 = goal_amount / 6
+            monthly_12 = goal_amount / 12
+            monthly_24 = goal_amount / 24
+            
+            return f"""🎯 RENCANA MENCAPAI GOAL
+
+💰 Target: Rp {goal_amount:,.0f} - {goal_description}
+
+📅 Timeline Options:
+• 6 bulan: Rp {monthly_6:,.0f}/bulan
+• 12 bulan: Rp {monthly_12:,.0f}/bulan
+• 24 bulan: Rp {monthly_24:,.0f}/bulan
+
+💡 Tips Mencapai Goal:
+1. Set auto transfer ke rekening terpisah
+2. Kurangi 1-2 kebiasaan pengeluaran kecil
+3. Cari sumber income tambahan
+
+🚀 Mulai hari ini, jangan tunda lagi!"""
+
+    def _show_goals_help(self):
+        """Show help for goals command"""
+        return """🎯 SET FINANCIAL GOALS
+
+Gunakan format: `/goals [jumlah] [deskripsi]`
+
+**Contoh:**
+• `/goals 10000000 emergency fund`
+• `/goals 50000000 beli motor`
+• `/goals 5000000 liburan bali`
+
+💡 Goals yang clear dan terukur lebih mudah dicapai!"""
+
+    def _check_budget_feasibility(self, user_id: str, budget_amount: float, duration_days: int):
+        """Check if budget is feasible for given duration"""
+        try:
+            from api.financial_advisor import FinancialAdvisor
+            advisor = FinancialAdvisor()
+            
+            # Get user's spending data for context
+            user_data = self._get_user_spending_data(user_id)
+            
+            return advisor.check_budget_feasibility(budget_amount, duration_days, user_data)
+            
+        except Exception as e:
+            # Fallback calculation
+            daily_budget = budget_amount / duration_days
+            
+            return f"""💰 ANALISIS BUDGET {duration_days} HARI
+
+💵 Total Budget: Rp {budget_amount:,.0f}
+📅 Durasi: {duration_days} hari  
+🎯 Budget Harian: Rp {daily_budget:,.0f}
+
+✅ KELAYAKAN:
+{'✅ Cukup untuk kebutuhan dasar' if daily_budget >= 50000 else '⚠️ Agak ketat, perlu hemat' if daily_budget >= 30000 else '❌ Sangat ketat, butuh strategi khusus'}
+
+📊 REKOMENDASI ALOKASI HARIAN:
+🍽️ Makanan: Rp {daily_budget*0.4:,.0f} (40%)
+🚗 Transport: Rp {daily_budget*0.2:,.0f} (20%)  
+🎯 Lain-lain: Rp {daily_budget*0.3:,.0f} (30%)
+💎 Cadangan: Rp {daily_budget*0.1:,.0f} (10%)
+
+💡 TIPS HEMAT:
+1. Masak sendiri untuk hemat 40-50% budget makanan
+2. Gunakan transport umum jika memungkinkan
+3. Hindari pembelian impulsif
+
+⚠️ PERINGATAN:
+Sisihkan minimal 10% untuk emergency!"""
+
+    def _get_daily_spending_plan(self, daily_budget: float):
+        """Get daily spending plan"""
+        try:
+            from api.financial_advisor import FinancialAdvisor
+            advisor = FinancialAdvisor()
+            
+            return advisor.get_daily_spending_plan(daily_budget)
+            
+        except Exception as e:
+            return f"""📅 RENCANA PENGELUARAN HARIAN
+💰 Budget: Rp {daily_budget:,.0f}
+
+🎯 ALOKASI SMART:
+🍽️ Makanan (3x sehari): Rp {daily_budget*0.45:,.0f} (45%)
+🚗 Transport: Rp {daily_budget*0.25:,.0f} (25%)
+☕ Jajan/Minuman: Rp {daily_budget*0.15:,.0f} (15%)
+🎯 Lain-lain: Rp {daily_budget*0.10:,.0f} (10%)
+💎 Tabungan: Rp {daily_budget*0.05:,.0f} (5%)
+
+💡 STRATEGI HEMAT:
+1. Bawa bekal dari rumah 2-3x seminggu
+2. Batasi jajan maksimal budget yang ditentukan
+3. Catat setiap pengeluaran real-time
+
+📱 TRACKING HARIAN:
+Kirim transaksi ke bot: "15000 makan siang ayam geprek" """
+
+    def _show_budgetcheck_help(self):
+        """Show help for budget check command"""
+        return """💰 CEK KELAYAKAN BUDGET
+
+Gunakan format: `/budgetcheck [jumlah] [hari]`
+
+**Contoh:**
+• `/budgetcheck 500000 14` - Cek budget 500rb untuk 14 hari
+• `/budgetcheck 1000000 30` - Cek budget 1 juta untuk 30 hari
+• `/budgetcheck 200000 7` - Cek budget 200rb untuk 1 minggu
+
+💡 Saya akan analisis apakah budget tersebut cukup dan berikan tips pengeluaran harian!"""
+
+    def _show_dailyplan_help(self):
+        """Show help for daily plan command"""
+        return """📅 RENCANA PENGELUARAN HARIAN
+
+Gunakan format: `/dailyplan [budget_harian]`
+
+**Contoh:**
+• `/dailyplan 50000` - Rencana untuk budget 50rb/hari
+• `/dailyplan 75000` - Rencana untuk budget 75rb/hari
+• `/dailyplan 100000` - Rencana untuk budget 100rb/hari
+
+💡 Saya akan buatkan alokasi smart dan tips hemat untuk budget harian Anda!"""
+
+    def _get_user_spending_data(self, user_id: str) -> dict:
+        """Get user's spending data for context (simplified)"""
+        # This would query your Google Sheets for user's actual data
+        # For now, return estimated data
+        return {
+            'daily_average': 75000,  # Estimated daily spending
+            'total_expense': 2250000,  # Monthly expense
+            'categories': {
+                'makanan': 900000,
+                'transport': 450000,
+                'lain-lain': 900000
+            }
+        }
 
     def _send_json_response(self, data):
         """Send JSON response"""

@@ -12,7 +12,7 @@ class FinancialAdvisor:
     def __init__(self):
         # Support multiple LLM providers
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
-        self.gemini_api_key = os.getenv('GEMINI_API_KEY') 
+        self.gemini_api_key = os.getenv('GEMINI_API_KEY') #in this project i use gemeni, because easy and reliable
         self.groq_api_key = os.getenv('GROQ_API_KEY')
         
         # Default to free option if available
@@ -114,6 +114,82 @@ class FinancialAdvisor:
         
         return self._get_ai_response(prompt)
     
+    def check_budget_feasibility(self, budget_amount: float, duration_days: int, user_data: Dict = None) -> str:
+        """Check if a budget is feasible for a specific duration and provide daily spending advice"""
+        
+        daily_budget = budget_amount / duration_days
+        
+        # Get user's typical spending pattern if available
+        context = ""
+        if user_data:
+            avg_daily = user_data.get('daily_average', 0)
+            if avg_daily > 0:
+                context = f"Rata-rata pengeluaran harian Anda biasanya: {avg_daily:,.0f} IDR"
+        
+        prompt = f"""
+        User bertanya apakah budget {budget_amount:,.0f} IDR cukup untuk hidup selama {duration_days} hari.
+        
+        Budget per hari: {daily_budget:,.0f} IDR
+        {context}
+        
+        Analisis dan berikan rekomendasi dalam format:
+        
+        💰 ANALISIS BUDGET {duration_days} HARI
+        
+        💵 Total Budget: {budget_amount:,.0f} IDR
+        📅 Durasi: {duration_days} hari
+        🎯 Budget Harian: {daily_budget:,.0f} IDR
+        
+        ✅ KELAYAKAN:
+        [Apakah budget ini realistis? Cukup/kurang/berlebih dan kenapa]
+        
+        📊 REKOMENDASI ALOKASI HARIAN:
+        🍽️ Makanan: [jumlah] IDR ({daily_budget*0.4:.0f} IDR - 40%)
+        🚗 Transport: [jumlah] IDR ({daily_budget*0.2:.0f} IDR - 20%)
+        🎯 Lain-lain: [jumlah] IDR ({daily_budget*0.3:.0f} IDR - 30%)
+        💎 Cadangan: [jumlah] IDR ({daily_budget*0.1:.0f} IDR - 10%)
+        
+        💡 TIPS HEMAT:
+        [3 tips praktis untuk mengoptimalkan budget ini]
+        
+        ⚠️ PERINGATAN:
+        [Hal-hal yang perlu diwaspadai dengan budget ini]
+        """
+        
+        return self._get_ai_response(prompt)
+    
+    def get_daily_spending_plan(self, daily_budget: float, priorities: List[str] = None) -> str:
+        """Generate daily spending plan based on budget"""
+        
+        if not priorities:
+            priorities = ["makanan", "transport", "kebutuhan_pokok"]
+        
+        prompt = f"""
+        User memiliki budget harian {daily_budget:,.0f} IDR dan ingin rencana pengeluaran.
+        
+        Prioritas pengeluaran: {', '.join(priorities)}
+        
+        Berikan rencana dalam format:
+        
+        📅 RENCANA PENGELUARAN HARIAN
+        💰 Budget: {daily_budget:,.0f} IDR
+        
+        🎯 ALOKASI SMART:
+        🍽️ Makanan (sarapan + makan siang + makan malam): {daily_budget*0.45:.0f} IDR
+        🚗 Transport (PP kerja/aktivitas): {daily_budget*0.25:.0f} IDR
+        ☕ Jajan/Minuman: {daily_budget*0.15:.0f} IDR
+        🎯 Lain-lain (darurat/tak terduga): {daily_budget*0.10:.0f} IDR
+        💎 Sisa untuk tabung: {daily_budget*0.05:.0f} IDR
+        
+        💡 STRATEGI HEMAT:
+        [Tips konkret untuk stay within budget]
+        
+        📱 TRACKING HARIAN:
+        [Cara simple track pengeluaran per hari]
+        """
+        
+        return self._get_ai_response(prompt)
+    
     def _prepare_user_context(self, user_data: Dict) -> str:
         """Prepare concise context for quick transaction advice"""
         
@@ -192,7 +268,7 @@ class FinancialAdvisor:
     def _call_gemini_api(self, prompt: str) -> str:
         """Call Google Gemini API"""
         
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={self.gemini_api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
         
         data = {
             "contents": [{
