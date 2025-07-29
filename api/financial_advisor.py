@@ -8,6 +8,10 @@ import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 class FinancialAdvisor:
     def __init__(self):
         # Support multiple LLM providers
@@ -266,7 +270,7 @@ class FinancialAdvisor:
         return result['choices'][0]['message']['content'].strip()
     
     def _call_gemini_api(self, prompt: str) -> str:
-        """Call Google Gemini API"""
+        """Call Google Gemini API with fast timeout"""
         
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
         
@@ -282,11 +286,22 @@ class FinancialAdvisor:
             }
         }
         
-        response = requests.post(url, json=data, timeout=10)
-        response.raise_for_status()
-        
-        result = response.json()
-        return result['candidates'][0]['content']['parts'][0]['text'].strip()
+        try:
+            response = requests.post(url, json=data, timeout=5)  # Reduced timeout to 5 seconds
+            response.raise_for_status()
+            
+            result = response.json()
+            return result['candidates'][0]['content']['parts'][0]['text'].strip()
+            
+        except requests.exceptions.Timeout:
+            print("⚠️ Gemini API timeout - falling back to rule-based advice")
+            raise Exception("API timeout")
+        except requests.exceptions.RequestException as e:
+            print(f"⚠️ Gemini API error: {e} - falling back to rule-based advice")
+            raise Exception(f"API error: {e}")
+        except Exception as e:
+            print(f"⚠️ Unexpected error with Gemini: {e} - falling back to rule-based advice")
+            raise Exception(f"Unexpected error: {e}")
     
     def _call_openai_api(self, prompt: str) -> str:
         """Call OpenAI API"""

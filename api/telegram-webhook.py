@@ -7,6 +7,10 @@ import gspread
 from google.oauth2.service_account import Credentials
 import requests
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 # Import AI integration
 try:
     from api.financial_advisor import FinancialAdvisor
@@ -1266,18 +1270,23 @@ class handler(BaseHTTPRequestHandler):
             from api.financial_advisor import FinancialAdvisor
             advisor = FinancialAdvisor()
             
-            # Get user data (simplified for now)
-            user_data = {
-                'total_income': 4000000,
-                'total_expense': 2500000,
-                'categories': {
-                    'makanan': 800000,
-                    'transport': 600000,
-                    'hiburan': 400000,
-                    'belanja': 500000,
-                    'utilitas': 200000
-                }
-            }
+            # Get REAL user data from Google Sheets
+            user_data = self._get_user_financial_data(user_id)
+            
+            # If no data available, provide helpful message
+            if user_data['total_income'] == 0 and user_data['total_expense'] == 0:
+                return """📊 **Analisis Keuangan Personal**
+
+❌ **Belum Ada Data Keuangan**
+
+Untuk mendapatkan analisis yang akurat, saya perlu data transaksi Anda terlebih dahulu.
+
+🚀 **Mulai dengan:**
+1. Catat pemasukan: `+2000000 gaji salary`
+2. Catat pengeluaran: `50000 makanan nasi padang`
+3. Gunakan `/advice` lagi setelah ada data
+
+💡 **Tip:** Minimal catat 5-10 transaksi untuk analisis yang bermakna."""
             
             return advisor.get_monthly_analysis(user_data)
             
@@ -1301,7 +1310,10 @@ Gunakan format: `/budget [penghasilan_bulanan]`
 
 💡 Saya akan berikan rekomendasi budget berdasarkan prinsip 50/30/20!"""
             
-            user_data = {'total_income': monthly_income}
+            # Get real user data for context
+            user_data = self._get_user_financial_data(user_id)
+            user_data['total_income'] = monthly_income  # Override with provided income
+            
             return advisor.get_budget_recommendation(monthly_income, user_data)
             
         except Exception as e:
@@ -1464,18 +1476,28 @@ Gunakan format: `/dailyplan [budget_harian]`
 💡 Saya akan buatkan alokasi smart dan tips hemat untuk budget harian Anda!"""
 
     def _get_user_spending_data(self, user_id: str) -> dict:
-        """Get user's spending data for context (simplified)"""
-        # This would query your Google Sheets for user's actual data
-        # For now, return estimated data
-        return {
-            'daily_average': 75000,  # Estimated daily spending
-            'total_expense': 2250000,  # Monthly expense
-            'categories': {
-                'makanan': 900000,
-                'transport': 450000,
-                'lain-lain': 900000
+        """Get user's spending data for context from Google Sheets"""
+        try:
+            # Get REAL data from Google Sheets
+            financial_data = self._get_user_financial_data(user_id)
+            
+            # Calculate daily average from real data
+            current_day = get_jakarta_time().day
+            daily_average = financial_data['total_expense'] / current_day if current_day > 0 else 0
+            
+            return {
+                'daily_average': daily_average,
+                'total_expense': financial_data['total_expense'],
+                'categories': financial_data['categories']
             }
-        }
+        except Exception as e:
+            print(f"Error getting user spending data: {e}")
+            # Fallback to minimal data
+            return {
+                'daily_average': 0,
+                'total_expense': 0,
+                'categories': {}
+            }
     
     def _get_user_financial_data(self, user_id):
         """Get user's financial data for AI analysis"""
