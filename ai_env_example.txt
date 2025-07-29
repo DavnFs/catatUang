@@ -1,0 +1,42 @@
+# AI Financial Advisor Environment Variables
+# Add these to your .env file or Vercel environment variables
+
+# =================================================
+# AI API KEYS (Choose one or multiple for fallback)
+# =================================================
+
+# Option 1: Groq API (FREE & FAST) - Recommended for start
+# Sign up at: https://console.groq.com
+# GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Option 2: Google Gemini API (FREE tier available)
+# Get key at: https://ai.google.dev/
+# GEMINI_API_KEY=AIzaSyXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Option 3: OpenAI API (PAID but best quality)
+# Get key at: https://platform.openai.com/api-keys
+# OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# =================================================
+# EXISTING VARIABLES (Keep these as they are)
+# =================================================
+
+# Telegram Bot Token
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+
+# Google Sheets Integration
+GOOGLE_SERVICE_ACCOUNT_KEY=your_base64_encoded_service_account_key
+GOOGLE_SHEETS_ID=your_google_sheets_id
+
+# =================================================
+# AI FEATURES CONFIGURATION (Optional)
+# =================================================
+
+# Enable/disable AI features (true/false)
+AI_INSIGHTS_ENABLED=true
+
+# Maximum tokens for AI responses (optional)
+AI_MAX_TOKENS=500
+
+# AI response temperature (0.0-1.0, optional)
+AI_TEMPERATURE=0.7
