@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CatatUang - Telegram Expense Tracker Bot</title>
+    <title>CatatUang - AI-Powered Telegram Expense Tracker Bot</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
@@ -267,9 +267,10 @@
             </a>
             <ul class="nav-links">
                 <li><a href="#features">Fitur</a></li>
-                <li><a href="#demo">Demo</a></li>
+                <li><a href="#demo">Preview</a></li>
+                <li><a href="#ai-features">AI Commands</a></li>
                 <li><a href="#setup">Setup</a></li>
-                <li><a href="https://github.com/yourusername/catatuang" target="_blank">
+                <li><a href="https://github.com/DavnFs/catatUang" target="_blank">
                     <i class="fab fa-github"></i> GitHub
                 </a></li>
             </ul>
@@ -279,16 +280,16 @@
     <main>
         <section class="hero">
             <div class="container">
-                <h1><i class="fas fa-chart-line"></i> CatatUang</h1>
-                <p>Bot Telegram serverless untuk mencatat pengeluaran otomatis. Deploy sekali, pakai selamanya!</p>
+                <h1><i class="fas fa-robot"></i> CatatUang</h1>
+                <p>🤖 AI-Powered Telegram Bot untuk expense tracking dengan smart financial insights. Deploy sekali, pakai selamanya!</p>
                 <div class="cta-buttons">
-                    <a href="https://t.me/moneyrec_bot" class="btn btn-primary" target="_blank">
-                        <i class="fab fa-telegram"></i> Try Live Demo
+                    <a href="#setup" class="btn btn-primary">
+                        <i class="fas fa-rocket"></i> Deploy Your Own Bot
                     </a>
-                    <a href="https://vercel.com/new/clone?repository-url=https://github.com/yourusername/catatuang" class="btn" target="_blank">
-                        <i class="fas fa-rocket"></i> Deploy to Vercel
+                    <a href="https://vercel.com/new/clone?repository-url=https://github.com/DavnFs/catatUang" class="btn" target="_blank">
+                        <i class="fas fa-cloud"></i> Quick Deploy
                     </a>
-                    <a href="https://github.com/yourusername/catatuang" class="btn" target="_blank">
+                    <a href="https://github.com/DavnFs/catatUang" class="btn" target="_blank">
                         <i class="fab fa-github"></i> View Source
                     </a>
                 </div>
@@ -300,37 +301,58 @@
                 <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 1rem;">✨ Fitur Unggulan</h2>
                 <p style="text-align: center; color: #666; font-size: 1.1rem;">Solusi pencatatan keuangan yang simple dan powerful</p>
                 
+                <div style="background: linear-gradient(45deg, #28a745, #20c997); color: white; padding: 2rem; border-radius: 15px; margin: 2rem 0; text-align: center;">
+                    <h3 style="margin-bottom: 1rem;"><i class="fas fa-shield-alt"></i> 100% Privacy Guaranteed</h3>
+                    <p style="font-size: 1.1rem; margin: 0;">Data Anda tersimpan di Google Sheets pribadi Anda sendiri. Tidak ada sharing database dengan user lain. Deploy bot sendiri untuk keamanan maksimal!</p>
+                </div>
+                
                 <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h3>AI Financial Advisor</h3>
+                        <p>Smart insights dan rekomendasi powered by Gemini/Groq/OpenAI. Personal financial assistant!</p>
+                    </div>
+                    
                     <div class="feature-card">
                         <div class="feature-icon">
                             <i class="fab fa-telegram"></i>
                         </div>
                         <h3>Chat Natural</h3>
-                        <p>Catat pengeluaran dengan chat biasa di Telegram. Tidak perlu aplikasi khusus!</p>
+                        <p>Catat expense dengan chat biasa di Telegram. AI akan memberikan tips otomatis!</p>
                     </div>
                     
                     <div class="feature-card">
                         <div class="feature-icon">
                             <i class="fas fa-table"></i>
                         </div>
-                        <h3>Google Sheets</h3>
-                        <p>Data tersimpan otomatis di Google Sheets. Bisa diakses dan dianalisis kapan saja.</p>
+                        <h3>Google Sheets Auto-Save</h3>
+                        <p>Data tersimpan otomatis di Google Sheets pribadi. Akses dan analisis kapan saja.</p>
                     </div>
                     
                     <div class="feature-card">
                         <div class="feature-icon">
                             <i class="fas fa-cloud"></i>
                         </div>
-                        <h3>Serverless</h3>
-                        <p>Deploy di Vercel dengan arsitektur serverless. Gratis dan scalable!</p>
+                        <h3>100% Free Deployment</h3>
+                        <p>Deploy di Vercel dengan arsitektur serverless. Gratis selamanya!</p>
                     </div>
                     
                     <div class="feature-card">
                         <div class="feature-icon">
                             <i class="fas fa-chart-pie"></i>
                         </div>
-                        <h3>Real-time Reports</h3>
-                        <p>Laporan harian, mingguan, dan bulanan langsung di chat Telegram.</p>
+                        <h3>Smart Reports & Analytics</h3>
+                        <p>Laporan harian, mingguan, dan bulanan dengan AI insights langsung di chat.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-target"></i>
+                        </div>
+                        <h3>Budget Planning</h3>
+                        <p>AI-powered budget recommendations dan feasibility checks untuk planning keuangan.</p>
                     </div>
                     
                     <div class="feature-card">
@@ -338,7 +360,7 @@
                             <i class="fas fa-plus-circle"></i>
                         </div>
                         <h3>Pemasukan & Pengeluaran</h3>
-                        <p>Catat both income dan expense dengan format yang mudah diingat.</p>
+                        <p>Catat income dan expense dengan format mudah. Auto-categorization dengan fuzzy matching.</p>
                     </div>
                     
                     <div class="feature-card">
@@ -346,7 +368,7 @@
                             <i class="fas fa-shield-alt"></i>
                         </div>
                         <h3>Privacy First</h3>
-                        <p>Data Anda tersimpan di Google Sheets pribadi. Tidak ada akses dari pihak ketiga.</p>
+                        <p>Data Anda tersimpan di Google Sheets pribadi. Zero data collection, full transparency.</p>
                     </div>
                 </div>
             </div>
@@ -355,17 +377,22 @@
         <section id="demo" class="demo">
             <div class="container">
                 <div class="demo-container">
-                    <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">🎮 Live Demo</h2>
-                    <p style="font-size: 1.1rem; margin-bottom: 2rem;">Lihat bagaimana mudahnya mencatat transaksi</p>
+                    <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">🎮 Preview Features</h2>
+                    <p style="font-size: 1.1rem; margin-bottom: 2rem;">Lihat fitur-fitur AI yang akan Anda dapatkan setelah setup bot sendiri</p>
+                    
+                    <div style="background: #ff6b6b; color: white; padding: 1.5rem; border-radius: 15px; margin-bottom: 2rem;">
+                        <h3 style="margin-bottom: 1rem;"><i class="fas fa-exclamation-triangle"></i> Important Notice</h3>
+                        <p><strong>Jangan gunakan bot demo!</strong> Bot dan server demo menggunakan database pribadi developer. Untuk keamanan data Anda, silakan deploy bot sendiri mengikuti panduan setup di bawah.</p>
+                    </div>
                     
                     <div class="chat-demo">
-                        <h3 style="margin-bottom: 1rem;"><i class="fab fa-telegram"></i> Chat Demo</h3>
+                        <h3 style="margin-bottom: 1rem;"><i class="fab fa-telegram"></i> Preview: Chat dengan AI Bot Anda Sendiri</h3>
                         <div class="message">
                             <strong>You:</strong> /start
                         </div>
                         <div class="message">
-                            <strong>CatatUang Bot:</strong> 🤖 Selamat datang di CatatUang!<br>
-                            Kirim transaksi dengan format: <code>jumlah kategori deskripsi</code>
+                            <strong>CatatUang Bot:</strong> 🤖 Selamat datang di CatatUang - AI Financial Assistant!<br>
+                            Kirim transaksi: <code>jumlah kategori deskripsi</code> atau gunakan AI commands
                         </div>
                         <div class="message">
                             <strong>You:</strong> 25000 makanan nasi padang
@@ -374,22 +401,71 @@
                             <strong>CatatUang Bot:</strong> 💸 <strong>Pengeluaran Tercatat!</strong><br>
                             💵 Jumlah: Rp 25.000<br>
                             📂 Kategori: Makanan<br>
-                            ✅ Data tersimpan di Google Sheets
+                            ✅ Data tersimpan di Google Sheets pribadi Anda<br>
+                            💡 <strong>AI Tips:</strong> Try meal prep to save 30-50% on food expenses! 🍱
                         </div>
                         <div class="message">
-                            <strong>You:</strong> +1000000 gaji salary bulanan
+                            <strong>You:</strong> /budget 4000000
                         </div>
                         <div class="message">
-                            <strong>CatatUang Bot:</strong> 💰 <strong>Pemasukan Tercatat!</strong><br>
-                            💵 Jumlah: Rp 1.000.000<br>
-                            📂 Kategori: Gaji<br>
-                            ✅ Data tersimpan di Google Sheets
+                            <strong>CatatUang Bot:</strong> � <strong>AI Budget Analysis for Rp 4.000.000</strong><br>
+                            🏠 Housing (30%): Rp 1.200.000<br>
+                            🍽️ Food (25%): Rp 1.000.000<br>
+                            � Transport (15%): Rp 600.000<br>
+                            📱 Utilities (10%): Rp 400.000<br>
+                            💰 Savings (20%): Rp 800.000
+                        </div>
+                        <div class="message">
+                            <strong>You:</strong> /tips
+                        </div>
+                        <div class="message">
+                            <strong>CatatUang Bot:</strong> 🧠 <strong>AI Financial Tips:</strong><br>
+                            • Start an emergency fund (6 months expenses)<br>
+                            • Use 50/30/20 rule for budgeting<br>
+                            • Track expenses daily for better awareness<br>
+                            • Consider investment after emergency fund complete
                         </div>
                     </div>
                     
-                    <a href="https://t.me/moneyrec_bot" class="btn btn-primary" target="_blank">
-                        <i class="fab fa-telegram"></i> Coba Sekarang
+                    <a href="#setup" class="btn btn-primary">
+                        <i class="fas fa-rocket"></i> Setup Bot Anda Sendiri
                     </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="ai-features" class="setup">
+            <div class="container">
+                <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 1rem;">🤖 AI Commands</h2>
+                <p style="text-align: center; color: #666; font-size: 1.1rem; margin-bottom: 3rem;">Powerful AI commands untuk financial planning yang lebih smart</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                    <div style="background: #f8f9fa; padding: 2rem; border-radius: 15px;">
+                        <h3 style="color: #667eea; margin-bottom: 1rem;"><i class="fas fa-lightbulb"></i> Smart Tips</h3>
+                        <code style="background: #e9ecef; padding: 0.3rem; border-radius: 5px;">/tips</code> - General financial advice<br><br>
+                        <code style="background: #e9ecef; padding: 0.3rem; border-radius: 5px;">/advice</code> - Personal financial analysis
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 2rem; border-radius: 15px;">
+                        <h3 style="color: #667eea; margin-bottom: 1rem;"><i class="fas fa-calculator"></i> Budget Planning</h3>
+                        <code style="background: #e9ecef; padding: 0.3rem; border-radius: 5px;">/budget 4000000</code> - Budget breakdown<br><br>
+                        <code style="background: #e9ecef; padding: 0.3rem; border-radius: 5px;">/budgetcheck 500000 14</code> - Check feasibility
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 2rem; border-radius: 15px;">
+                        <h3 style="color: #667eea; margin-bottom: 1rem;"><i class="fas fa-target"></i> Goal Setting</h3>
+                        <code style="background: #e9ecef; padding: 0.3rem; border-radius: 5px;">/goals 10000000 emergency fund</code><br><br>
+                        <code style="background: #e9ecef; padding: 0.3rem; border-radius: 5px;">/dailyplan 75000</code> - Daily spending plan
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 3rem; padding: 2rem; background: linear-gradient(45deg, #667eea, #764ba2); border-radius: 15px; color: white;">
+                    <h3 style="margin-bottom: 1rem;">💰 100% Free AI Providers</h3>
+                    <div style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;">
+                        <div><i class="fas fa-star"></i> <strong>Groq</strong> - Free & Fast</div>
+                        <div><i class="fas fa-star"></i> <strong>Gemini</strong> - Free Tier</div>
+                        <div><i class="fas fa-dollar-sign"></i> <strong>OpenAI</strong> - Paid Option</div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -397,42 +473,48 @@
         <section id="setup" class="setup">
             <div class="container">
                 <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 1rem;">🚀 Quick Setup</h2>
-                <p style="text-align: center; color: #666; font-size: 1.1rem;">Deploy bot Anda sendiri dalam 5 menit</p>
+                <p style="text-align: center; color: #666; font-size: 1.1rem;">Deploy AI-powered bot Anda sendiri dalam 10 menit</p>
                 
                 <div class="setup-steps">
                     <div class="step">
                         <div class="step-number">1</div>
-                        <h3>Fork Repository</h3>
-                        <p>Fork repository CatatUang di GitHub</p>
+                        <h3>Create Telegram Bot</h3>
+                        <p>Chat @BotFather untuk create bot dan dapatkan token</p>
                     </div>
                     
                     <div class="step">
                         <div class="step-number">2</div>
-                        <h3>Deploy to Vercel</h3>
-                        <p>Connect GitHub repo ke Vercel dan deploy</p>
+                        <h3>Setup Google Sheets</h3>
+                        <p>Create Google Sheets + Service Account untuk data storage</p>
                     </div>
                     
                     <div class="step">
                         <div class="step-number">3</div>
-                        <h3>Setup Environment</h3>
-                        <p>Set environment variables di Vercel dashboard</p>
+                        <h3>Get AI API Key</h3>
+                        <p>Pilih Groq (FREE), Gemini (FREE), atau OpenAI (PAID) untuk AI features</p>
                     </div>
                     
                     <div class="step">
                         <div class="step-number">4</div>
-                        <h3>Create Telegram Bot</h3>
-                        <p>Chat @BotFather untuk buat bot Telegram</p>
+                        <h3>Fork & Deploy</h3>
+                        <p>Fork repository ke GitHub dan deploy ke Vercel</p>
                     </div>
                     
                     <div class="step">
                         <div class="step-number">5</div>
-                        <h3>Set Webhook</h3>
-                        <p>Jalankan script webhook setup untuk connect bot</p>
+                        <h3>Set Environment Variables</h3>
+                        <p>Add BOT_TOKEN, SHEETS_ID, SERVICE_KEY, dan AI_API_KEY</p>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">6</div>
+                        <h3>Setup Webhook</h3>
+                        <p>Set webhook URL untuk connect Telegram bot ke Vercel</p>
                     </div>
                 </div>
                 
                 <div style="text-align: center; margin-top: 3rem;">
-                    <a href="https://github.com/yourusername/catatuang#setup" class="btn" target="_blank">
+                    <a href="https://github.com/DavnFs/catatUang#setup" class="btn" target="_blank">
                         <i class="fas fa-book"></i> Detailed Setup Guide
                     </a>
                 </div>
@@ -443,20 +525,20 @@
     <footer>
         <div class="container">
             <div class="footer-links">
-                <a href="https://github.com/yourusername/catatuang" target="_blank">
+                <a href="https://github.com/DavnFs/catatUang" target="_blank">
                     <i class="fab fa-github"></i> GitHub
                 </a>
-                <a href="https://github.com/yourusername/catatuang/issues" target="_blank">
+                <a href="https://github.com/DavnFs/catatUang/issues" target="_blank">
                     <i class="fas fa-bug"></i> Issues
                 </a>
-                <a href="https://github.com/yourusername/catatuang/wiki" target="_blank">
+                <a href="https://github.com/DavnFs/catatUang#readme" target="_blank">
                     <i class="fas fa-book"></i> Documentation
                 </a>
-                <a href="https://t.me/moneyrec_bot" target="_blank">
-                    <i class="fab fa-telegram"></i> Live Demo
+                <a href="#setup">
+                    <i class="fas fa-rocket"></i> Setup Guide
                 </a>
             </div>
-            <p>&copy; 2025 CatatUang. Open source project built with ❤️</p>
+            <p>&copy; 2025 CatatUang. AI-Powered expense tracker built with ❤️ | Open Source & 100% Free</p>
         </div>
     </footer>
 
