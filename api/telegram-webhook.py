@@ -115,10 +115,10 @@ class handler(BaseHTTPRequestHandler):
                 ai_section = ""
                 if AI_ENABLED:
                     ai_section = """
-**🤖 AI Financial Advisor:**
+**🤖 AI Financial Advisor (with Historical Analysis):**
 /tips - Tips hemat umum
-/advice - Analisis keuangan personal
-/budget [income] - Rekomendasi budget bulanan
+/advice - Analisis keuangan personal dengan data historis
+/budget [income] - Rekomendasi budget berdasarkan pola pengeluaran historis
 /goals [jumlah] [deskripsi] - Set financial goals
 /budgetcheck [jumlah] [hari] - Cek kelayakan budget untuk periode tertentu
 /dailyplan [budget_harian] - Rencana pengeluaran harian
@@ -149,7 +149,7 @@ class handler(BaseHTTPRequestHandler):
 
 **💰 Income & Balance:**
 /income [jumlah] - Tambah pemasukan manual
-/balance - Lihat saldo & overview
+/balance - Lihat saldo & overview dengan carry-over analysis
 /expenses - Laporan pengeluaran saja
 
 {ai_section}**📈 Analytics & Insights:**
@@ -1076,13 +1076,14 @@ class handler(BaseHTTPRequestHandler):
             return f"❌ Error: {str(e)}"
     
     def _get_current_balance(self):
-        """Get current balance and financial overview"""
+        """Get current balance and financial overview with carry-over analysis"""
         try:
             report_data = self._get_sheets_data()
             if not report_data:
                 return "❌ Tidak bisa mengambil data balance."
             
             jakarta_now = get_jakarta_time()
+            current_month = jakarta_now.strftime('%Y-%m')
             
             # All time totals
             total_income = sum(int(row.get('Jumlah', 0)) for row in report_data if int(row.get('Jumlah', 0)) > 0)
@@ -1090,46 +1091,57 @@ class handler(BaseHTTPRequestHandler):
             net_balance = total_income - total_expense
             
             # This month
-            current_month = jakarta_now.strftime('%Y-%m')
             current_month_data = [row for row in report_data if row.get('Tanggal', '').startswith(current_month)]
-            
             month_income = sum(int(row.get('Jumlah', 0)) for row in current_month_data if int(row.get('Jumlah', 0)) > 0)
             month_expense = sum(abs(int(row.get('Jumlah', 0))) for row in current_month_data if int(row.get('Jumlah', 0)) < 0)
             month_balance = month_income - month_expense
             
+            # Calculate carry-over from previous months
+            previous_data = [row for row in report_data if not row.get('Tanggal', '').startswith(current_month)]
+            previous_income = sum(int(row.get('Jumlah', 0)) for row in previous_data if int(row.get('Jumlah', 0)) > 0)
+            previous_expense = sum(abs(int(row.get('Jumlah', 0))) for row in previous_data if int(row.get('Jumlah', 0)) < 0)
+            carry_over_balance = previous_income - previous_expense
+            
             # Balance status
             balance_emoji = "💚" if net_balance > 0 else "🔴" if net_balance < 0 else "⚖️"
             month_emoji = "💚" if month_balance > 0 else "🔴" if month_balance < 0 else "⚖️"
+            carry_over_emoji = "💰" if carry_over_balance > 0 else "🔴" if carry_over_balance < 0 else "⚖️"
             
-            result = f"""💼 **Current Balance Overview**
+            result = f"""💼 **Balance Overview with Carry-Over Analysis**
 📅 {jakarta_now.strftime('%d/%m/%Y %H:%M')} WIB
 
-{balance_emoji} **Total Balance:** Rp {net_balance:,}
-• Total Pemasukan: Rp {total_income:,}
-• Total Pengeluaran: Rp {total_expense:,}
-• Transaksi: {len(report_data)}
+{balance_emoji} **TOTAL BALANCE:** Rp {net_balance:,}
 
-{month_emoji} **Bulan Ini ({current_month}):**
+{carry_over_emoji} **CARRY-OVER dari bulan lalu:** Rp {carry_over_balance:,}
+• Total pemasukan sebelumnya: Rp {previous_income:,}
+• Total pengeluaran sebelumnya: Rp {previous_expense:,}
+
+{month_emoji} **BULAN INI ({current_month}):**
 • Pemasukan: Rp {month_income:,}
 • Pengeluaran: Rp {month_expense:,}
 • Saldo bulan ini: Rp {month_balance:,}
-• Transaksi: {len(current_month_data)}"""
+• Transaksi: {len(current_month_data)}
 
-            # Add insights
-            if total_income == 0:
-                result += f"\n\n💡 **Tip:** Belum ada pemasukan tercatat. Gunakan `/income [jumlah]` untuk menambah pemasukan dari orang tua."
-            elif month_income == 0:
-                result += f"\n\n💡 **Info:** Belum ada pemasukan bulan ini. Total pengeluaran: Rp {month_expense:,}"
+💡 **SALDO EFEKTIF:** Rp {carry_over_balance + month_balance:,}
+(Carry-over + Saldo bulan ini)"""
+
+            # Add insights based on carry-over
+            if carry_over_balance > 0:
+                result += f"\n\n✅ **Good:** Anda memiliki saldo positif dari bulan-bulan sebelumnya!"
+                if month_expense > 0:
+                    months_sustainable = carry_over_balance / (month_expense / jakarta_now.day * 30) if jakarta_now.day > 0 else 0
+                    result += f"\n💰 **Sustainability:** Dengan carry-over, bisa bertahan {months_sustainable:.1f} bulan lagi"
+            elif carry_over_balance < 0:
+                result += f"\n\n⚠️ **Caution:** Ada deficit Rp {abs(carry_over_balance):,} dari bulan-bulan sebelumnya"
+            else:
+                result += f"\n\n📊 **Info:** Ini adalah bulan pertama tracking atau saldo carry-over = 0"
             
-            # Spending rate if there's income
-            if total_income > 0:
-                spending_rate = (total_expense / total_income) * 100
-                if spending_rate > 100:
-                    result += f"\n\n⚠️ **Warning:** Pengeluaran melebihi pemasukan ({spending_rate:.1f}%)"
-                elif spending_rate > 80:
-                    result += f"\n\n⚠️ **Caution:** Spending rate tinggi ({spending_rate:.1f}%)"
-                else:
-                    result += f"\n\n✅ **Good:** Spending rate sehat ({spending_rate:.1f}%)"
+            # Add income recommendation if needed
+            if month_income == 0:
+                result += f"\n\n💡 **Tip:** Belum ada pemasukan bulan ini. Gunakan `/income [jumlah]` untuk mencatat pemasukan."
+            
+            # AI advice prompt
+            result += f"\n\n🤖 **Ingin analisis AI?** Gunakan `/advice` untuk mendapat insight mendalam berdasarkan data historis Anda!"
             
             return result.replace(',', '.')
             
@@ -1265,28 +1277,30 @@ class handler(BaseHTTPRequestHandler):
 💡 Konsistensi lebih penting daripada jumlah besar!"""
 
     def _get_ai_advice(self, user_id):
-        """Get AI-powered financial analysis"""
+        """Get AI-powered financial analysis with historical data"""
         try:
             from api.financial_advisor import FinancialAdvisor
             advisor = FinancialAdvisor()
             
-            # Get REAL user data from Google Sheets
-            user_data = self._get_user_financial_data(user_id)
+            # Get REAL user data with historical analysis
+            user_data = self._get_user_financial_data(user_id, include_historical=True)
             
             # If no data available, provide helpful message
-            if user_data['total_income'] == 0 and user_data['total_expense'] == 0:
-                return """📊 **Analisis Keuangan Personal**
+            if user_data['total_income'] == 0 and user_data['total_expense'] == 0 and user_data['carry_over_balance'] == 0:
+                return """🤖 **AI Financial Analysis**
 
-❌ **Belum Ada Data Keuangan**
+📝 Belum ada data transaksi untuk dianalisis.
 
-Untuk mendapatkan analisis yang akurat, saya perlu data transaksi Anda terlebih dahulu.
+💡 **Untuk mendapatkan AI advice yang akurat:**
+1. Mulai catat pemasukan: `+1000000 gaji salary`
+2. Catat pengeluaran: `50000 makanan nasi padang`  
+3. Gunakan /advice lagi setelah ada beberapa transaksi
 
-🚀 **Mulai dengan:**
-1. Catat pemasukan: `+2000000 gaji salary`
-2. Catat pengeluaran: `50000 makanan nasi padang`
-3. Gunakan `/advice` lagi setelah ada data
-
-💡 **Tip:** Minimal catat 5-10 transaksi untuk analisis yang bermakna."""
+🎯 **AI akan menganalisis:**
+• Pola pengeluaran Anda
+• Saldo carry-over dari bulan lalu
+• Trend spending historis
+• Rekomendasi budget yang realistis"""
             
             return advisor.get_monthly_analysis(user_data)
             
@@ -1294,7 +1308,7 @@ Untuk mendapatkan analisis yang akurat, saya perlu data transaksi Anda terlebih 
             return f"❌ Gagal menganalisis data keuangan: {str(e)}"
 
     def _get_ai_budget(self, user_id, monthly_income):
-        """Get AI budget recommendations"""
+        """Get AI budget recommendations with historical context"""
         try:
             from api.financial_advisor import FinancialAdvisor
             advisor = FinancialAdvisor()
@@ -1308,10 +1322,10 @@ Gunakan format: `/budget [penghasilan_bulanan]`
 • `/budget 4000000` - Budget untuk penghasilan 4 juta
 • `/budget 6500000` - Budget untuk penghasilan 6.5 juta
 
-💡 Saya akan berikan rekomendasi budget berdasarkan prinsip 50/30/20!"""
+💡 Saya akan berikan rekomendasi budget berdasarkan prinsip 50/30/20 dan pola pengeluaran historis Anda!"""
             
-            # Get real user data for context
-            user_data = self._get_user_financial_data(user_id)
+            # Get real user data with historical context
+            user_data = self._get_user_financial_data(user_id, include_historical=True)
             user_data['total_income'] = monthly_income  # Override with provided income
             
             return advisor.get_budget_recommendation(monthly_income, user_data)
@@ -1499,39 +1513,140 @@ Gunakan format: `/dailyplan [budget_harian]`
                 'categories': {}
             }
     
-    def _get_user_financial_data(self, user_id):
-        """Get user's financial data for AI analysis"""
+    def _get_user_financial_data(self, user_id, include_historical=True):
+        """Get user's financial data for AI analysis with historical data support"""
         try:
             # Get data from Google Sheets
             report_data = self._get_sheets_data()
             if not report_data:
-                return {'total_income': 0, 'total_expense': 0, 'categories': {}}
+                return self._get_empty_financial_data()
             
-            # Filter data for current month
             jakarta_now = get_jakarta_time()
             current_month = jakarta_now.strftime('%Y-%m')
-            monthly_data = [row for row in report_data if row.get('Tanggal', '').startswith(current_month)]
             
-            # Calculate totals
-            total_income = sum(int(row.get('Jumlah', 0)) for row in monthly_data if int(row.get('Jumlah', 0)) > 0)
-            total_expense = sum(abs(int(row.get('Jumlah', 0))) for row in monthly_data if int(row.get('Jumlah', 0)) < 0)
-            
-            # Group by categories
-            categories = {}
-            for row in monthly_data:
-                if int(row.get('Jumlah', 0)) < 0:  # Expenses only
-                    cat = row.get('Kategori', 'lainnya')
-                    categories[cat] = categories.get(cat, 0) + abs(int(row.get('Jumlah', 0)))
-            
-            return {
-                'total_income': total_income,
-                'total_expense': total_expense,
-                'categories': categories,
-                'transactions_count': len(monthly_data)
-            }
+            if include_historical:
+                # Include ALL historical data for better analysis
+                all_data = report_data
+                monthly_data = [row for row in report_data if row.get('Tanggal', '').startswith(current_month)]
+                
+                # Calculate historical totals (all time)
+                total_income_all = sum(int(row.get('Jumlah', 0)) for row in all_data if int(row.get('Jumlah', 0)) > 0)
+                total_expense_all = sum(abs(int(row.get('Jumlah', 0))) for row in all_data if int(row.get('Jumlah', 0)) < 0)
+                
+                # Calculate current month totals
+                current_income = sum(int(row.get('Jumlah', 0)) for row in monthly_data if int(row.get('Jumlah', 0)) > 0)
+                current_expense = sum(abs(int(row.get('Jumlah', 0))) for row in monthly_data if int(row.get('Jumlah', 0)) < 0)
+                
+                # Calculate carry-over balance from previous months
+                previous_data = [row for row in all_data if not row.get('Tanggal', '').startswith(current_month)]
+                previous_income = sum(int(row.get('Jumlah', 0)) for row in previous_data if int(row.get('Jumlah', 0)) > 0)
+                previous_expense = sum(abs(int(row.get('Jumlah', 0))) for row in previous_data if int(row.get('Jumlah', 0)) < 0)
+                carry_over_balance = previous_income - previous_expense
+                
+                # Current month categories
+                current_categories = {}
+                for row in monthly_data:
+                    if int(row.get('Jumlah', 0)) < 0:  # Expenses only
+                        cat = row.get('Kategori', 'lainnya')
+                        current_categories[cat] = current_categories.get(cat, 0) + abs(int(row.get('Jumlah', 0)))
+                
+                # Historical spending patterns (last 3 months for trend analysis)
+                last_3_months = []
+                for i in range(1, 4):  # Last 3 months
+                    target_date = (jakarta_now.replace(day=1) - timedelta(days=i*30))
+                    target_month = target_date.strftime('%Y-%m')
+                    month_data = [row for row in all_data if row.get('Tanggal', '').startswith(target_month)]
+                    month_expense = sum(abs(int(row.get('Jumlah', 0))) for row in month_data if int(row.get('Jumlah', 0)) < 0)
+                    last_3_months.append(month_expense)
+                
+                # Average monthly spending from historical data
+                avg_monthly_expense = sum(last_3_months) / len(last_3_months) if last_3_months else 0
+                
+                return {
+                    'total_income': current_income,
+                    'total_expense': current_expense,
+                    'categories': current_categories,
+                    'transactions_count': len(monthly_data),
+                    # Historical data for better AI analysis
+                    'carry_over_balance': carry_over_balance,
+                    'total_income_all_time': total_income_all,
+                    'total_expense_all_time': total_expense_all,
+                    'current_month_balance': current_income - current_expense,
+                    'effective_balance': carry_over_balance + (current_income - current_expense),
+                    'historical_spending_pattern': last_3_months,
+                    'avg_monthly_expense': avg_monthly_expense,
+                    'months_with_data': self._count_months_with_data(all_data),
+                    'first_transaction_date': self._get_first_transaction_date(all_data)
+                }
+            else:
+                # Legacy mode - current month only
+                monthly_data = [row for row in report_data if row.get('Tanggal', '').startswith(current_month)]
+                
+                total_income = sum(int(row.get('Jumlah', 0)) for row in monthly_data if int(row.get('Jumlah', 0)) > 0)
+                total_expense = sum(abs(int(row.get('Jumlah', 0))) for row in monthly_data if int(row.get('Jumlah', 0)) < 0)
+                
+                categories = {}
+                for row in monthly_data:
+                    if int(row.get('Jumlah', 0)) < 0:  # Expenses only
+                        cat = row.get('Kategori', 'lainnya')
+                        categories[cat] = categories.get(cat, 0) + abs(int(row.get('Jumlah', 0)))
+                
+                return {
+                    'total_income': total_income,
+                    'total_expense': total_expense,
+                    'categories': categories,
+                    'transactions_count': len(monthly_data),
+                    'carry_over_balance': 0,  # Not calculated in legacy mode
+                    'effective_balance': total_income - total_expense
+                }
+                
         except Exception as e:
             print(f"Error getting user financial data: {e}")
-            return {'total_income': 0, 'total_expense': 0, 'categories': {}}
+            return self._get_empty_financial_data()
+    
+    def _get_empty_financial_data(self):
+        """Return empty financial data structure"""
+        return {
+            'total_income': 0, 
+            'total_expense': 0, 
+            'categories': {}, 
+            'transactions_count': 0,
+            'carry_over_balance': 0,
+            'effective_balance': 0,
+            'current_month_balance': 0,
+            'avg_monthly_expense': 0,
+            'historical_spending_pattern': [],
+            'months_with_data': 0
+        }
+    
+    def _count_months_with_data(self, data):
+        """Count number of months that have transaction data"""
+        months = set()
+        for row in data:
+            date_str = row.get('Tanggal', '')
+            if date_str:
+                try:
+                    month = date_str[:7]  # YYYY-MM
+                    months.add(month)
+                except:
+                    continue
+        return len(months)
+    
+    def _get_first_transaction_date(self, data):
+        """Get the date of first transaction for tenure calculation"""
+        if not data:
+            return None
+        
+        dates = []
+        for row in data:
+            date_str = row.get('Tanggal', '')
+            if date_str:
+                try:
+                    dates.append(date_str)
+                except:
+                    continue
+        
+        return min(dates) if dates else None
 
     def _send_json_response(self, data):
         """Send JSON response"""

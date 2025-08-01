@@ -87,12 +87,36 @@ class FinancialAdvisor:
         return self._get_ai_response(prompt)
     
     def get_budget_recommendation(self, monthly_income: float, user_data: Dict) -> str:
-        """Generate personalized budget recommendations"""
+        """Generate personalized budget recommendations with historical context"""
+        
+        # Extract historical data for better recommendations
+        carry_over_balance = user_data.get('carry_over_balance', 0)
+        avg_monthly_expense = user_data.get('avg_monthly_expense', 0)
+        historical_pattern = user_data.get('historical_spending_pattern', [])
+        months_with_data = user_data.get('months_with_data', 0)
+        current_expense = user_data.get('total_expense', 0)
+        
+        # Build historical context for AI
+        historical_context = ""
+        if months_with_data > 0 and avg_monthly_expense > 0:
+            historical_context = f"""
+        
+        DATA HISTORICAL USER:
+        - Rata-rata pengeluaran bulanan: {avg_monthly_expense:,.0f} IDR
+        - Saldo carry-over: {carry_over_balance:,.0f} IDR
+        - Data tersedia untuk: {months_with_data} bulan
+        - Pengeluaran bulan ini: {current_expense:,.0f} IDR
+        """
+        
+        if len(historical_pattern) >= 2:
+            trend = "menurun" if historical_pattern[0] > historical_pattern[-1] else "meningkat"
+            historical_context += f"- Trend pengeluaran: {trend} dalam 3 bulan terakhir\n"
         
         prompt = f"""
         User memiliki penghasilan bulanan: {monthly_income:,.0f} IDR
+        {historical_context}
         
-        Berikan rekomendasi budget menggunakan prinsip 50/30/20 yang disesuaikan untuk Indonesia:
+        Berikan rekomendasi budget yang REALISTIS berdasarkan pola pengeluaran historis user, menggunakan prinsip 50/30/20 yang disesuaikan:
         
         Format response:
         💰 REKOMENDASI BUDGET BULANAN
@@ -112,8 +136,11 @@ class FinancialAdvisor:
         - Investasi jangka panjang
         - Dana pensiun
         
-        💡 Tips khusus berdasarkan penghasilan Anda:
-        [saran spesifik untuk range income ini]
+        💡 ANALISIS BERDASARKAN HISTORICAL DATA:
+        [Bandingkan dengan pola pengeluaran historis user. Apakah budget ini realistis? Ada saldo carry-over yang perlu dipertimbangkan?]
+        
+        🎯 REKOMENDASI KHUSUS:
+        [Saran spesifik berdasarkan trend pengeluaran dan saldo carry-over user]
         """
         
         return self._get_ai_response(prompt)
@@ -195,25 +222,127 @@ class FinancialAdvisor:
         return self._get_ai_response(prompt)
     
     def _prepare_user_context(self, user_data: Dict) -> str:
-        """Prepare concise context for quick transaction advice"""
+        """Prepare user context with historical data for better AI analysis"""
         
         total_income = user_data.get('total_income', 0)
         total_expense = user_data.get('total_expense', 0)
         categories = user_data.get('categories', {})
         
-        context = f"""
-        Pemasukan bulan ini: {total_income:,.0f} IDR
-        Pengeluaran bulan ini: {total_expense:,.0f} IDR
-        Sisa budget: {total_income - total_expense:,.0f} IDR
+        # New historical data fields
+        carry_over_balance = user_data.get('carry_over_balance', 0)
+        effective_balance = user_data.get('effective_balance', 0)
+        avg_monthly_expense = user_data.get('avg_monthly_expense', 0)
+        months_with_data = user_data.get('months_with_data', 0)
+        historical_pattern = user_data.get('historical_spending_pattern', [])
         
-        Top 3 kategori pengeluaran:
+        context = f"""
+        BULAN INI:
+        - Pemasukan: {total_income:,.0f} IDR
+        - Pengeluaran: {total_expense:,.0f} IDR
+        - Saldo bulan ini: {total_income - total_expense:,.0f} IDR
+        
+        HISTORICAL DATA:
+        - Saldo carry-over dari bulan lalu: {carry_over_balance:,.0f} IDR
+        - Total saldo efektif: {effective_balance:,.0f} IDR
+        - Rata-rata pengeluaran bulanan: {avg_monthly_expense:,.0f} IDR
+        - Data tersedia untuk: {months_with_data} bulan
         """
         
-        # Add top spending categories
+        # Add spending trend analysis if historical data available
+        if len(historical_pattern) >= 2:
+            trend_direction = "naik" if historical_pattern[0] > historical_pattern[-1] else "turun"
+            context += f"- Trend pengeluaran: {trend_direction} dalam 3 bulan terakhir\n"
+        
+        context += "\nTop 3 kategori pengeluaran bulan ini:\n"        # Add top spending categories
         sorted_categories = sorted(categories.items(), key=lambda x: x[1], reverse=True)[:3]
         for cat, amount in sorted_categories:
             percentage = (amount / total_expense * 100) if total_expense > 0 else 0
-            context += f"- {cat}: {amount:,.0f} IDR ({percentage:.1f}%)\n"
+            context += f"- {cat}: {amount:,.0f} IDR ({percentage:.1f}%)
+"
+        
+        return context
+    
+    def _prepare_detailed_context(self, user_data: Dict) -> str:
+        """Prepare comprehensive detailed context for in-depth analysis"""
+        
+        total_income = user_data.get('total_income', 0)
+        total_expense = user_data.get('total_expense', 0)
+        categories = user_data.get('categories', {})
+        transactions_count = user_data.get('transactions_count', 0)
+        
+        # Historical data
+        carry_over_balance = user_data.get('carry_over_balance', 0)
+        effective_balance = user_data.get('effective_balance', 0)
+        current_month_balance = user_data.get('current_month_balance', 0)
+        total_income_all_time = user_data.get('total_income_all_time', 0)
+        total_expense_all_time = user_data.get('total_expense_all_time', 0)
+        avg_monthly_expense = user_data.get('avg_monthly_expense', 0)
+        months_with_data = user_data.get('months_with_data', 0)
+        historical_pattern = user_data.get('historical_spending_pattern', [])
+        first_transaction_date = user_data.get('first_transaction_date', '')
+        
+        context = f"""
+        DATA KEUANGAN LENGKAP:
+        
+        BULAN BERJALAN:
+        - Pemasukan bulan ini: {total_income:,.0f} IDR
+        - Pengeluaran bulan ini: {total_expense:,.0f} IDR
+        - Saldo bulan ini: {current_month_balance:,.0f} IDR
+        - Jumlah transaksi: {transactions_count}
+        
+        HISTORICAL OVERVIEW:
+        - Saldo dari bulan-bulan sebelumnya: {carry_over_balance:,.0f} IDR
+        - Total saldo efektif saat ini: {effective_balance:,.0f} IDR
+        - Total pemasukan all-time: {total_income_all_time:,.0f} IDR
+        - Total pengeluaran all-time: {total_expense_all_time:,.0f} IDR
+        - Rata-rata pengeluaran per bulan: {avg_monthly_expense:,.0f} IDR
+        - Data tersedia untuk: {months_with_data} bulan
+        """
+        
+        if first_transaction_date:
+            context += f"- Mulai tracking sejak: {first_transaction_date}
+"
+        
+        # Historical spending pattern analysis
+        if len(historical_pattern) >= 2:
+            context += f"
+TREND PENGELUARAN (3 bulan terakhir):
+"
+            for i, amount in enumerate(historical_pattern):
+                context += f"- Bulan {i+1} lalu: {amount:,.0f} IDR
+"
+            
+            # Calculate trend
+            if historical_pattern[0] > historical_pattern[-1]:
+                trend_pct = ((historical_pattern[0] - historical_pattern[-1]) / historical_pattern[-1]) * 100
+                context += f"- Trend: MENURUN {trend_pct:.1f}% (bagus!)
+"
+            else:
+                trend_pct = ((historical_pattern[-1] - historical_pattern[0]) / historical_pattern[0]) * 100
+                context += f"- Trend: NAIK {trend_pct:.1f}% (perlu perhatian)
+"
+        
+        # Spending ratio analysis
+        if effective_balance != 0:
+            if carry_over_balance > 0:
+                sustainability_months = carry_over_balance / avg_monthly_expense if avg_monthly_expense > 0 else 0
+                context += f"
+ANALISIS SUSTAINABILITY:
+"
+                context += f"- Dengan saldo carry-over, bisa bertahan {sustainability_months:.1f} bulan lagi
+"
+            
+            if total_income > 0:
+                expense_ratio = (total_expense / total_income) * 100
+                context += f"- Expense ratio bulan ini: {expense_ratio:.1f}%
+"
+        
+        context += "\nBREAKDOWN KATEGORI BULAN INI:\n"        # Detailed category breakdown
+        sorted_categories = sorted(categories.items(), key=lambda x: x[1], reverse=True)
+        for cat, amount in sorted_categories:
+            percentage = (amount / total_expense * 100) if total_expense > 0 else 0
+            context += f"- {cat.title()}: {amount:,.0f} IDR ({percentage:.1f}%)
+"
         
         return context
     
