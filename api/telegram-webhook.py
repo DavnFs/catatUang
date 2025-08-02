@@ -152,6 +152,11 @@ class handler(BaseHTTPRequestHandler):
 /balance - Lihat saldo & overview dengan carry-over analysis
 /expenses - Laporan pengeluaran saja
 
+**🔧 Transaction Management:**
+/recent - Lihat 10 transaksi terbaru
+/delete [nomor] - Hapus transaksi (gunakan nomor dari /recent)
+/edit [nomor] [jumlah] [kategori] [deskripsi] - Edit transaksi
+
 {ai_section}**📈 Analytics & Insights:**
 /trends - Trend pengeluaran bulanan
 /analytics - Analisis mendalam
@@ -275,6 +280,62 @@ class handler(BaseHTTPRequestHandler):
                     return self._get_daily_spending_plan(daily_budget)
                 else:
                     return self._show_dailyplan_help()
+                    
+            elif command == '/recent':
+                return self._show_recent_transactions(f"{username}_{user_id}")
+                
+            elif command == '/delete':
+                args = text.split()[1:] if len(text.split()) > 1 else []
+                if args:
+                    try:
+                        row_number = int(args[0])
+                        return self._delete_transaction(f"{username}_{user_id}", row_number)
+                    except ValueError:
+                        return "❌ Format salah! Gunakan: `/delete [nomor]`\n\nContoh: `/delete 3`\n\nLihat nomor transaksi dengan `/recent`"
+                else:
+                    return """🗑️ **Hapus Transaksi**
+
+**Format:**
+`/delete [nomor]` - Hapus transaksi berdasarkan nomor
+
+**Cara pakai:**
+1. Ketik `/recent` untuk lihat transaksi terbaru
+2. Catat nomor transaksi yang mau dihapus
+3. Ketik `/delete [nomor]`
+
+**Contoh:**
+• `/delete 3` - Hapus transaksi nomor 3
+• `/delete 1` - Hapus transaksi terbaru
+
+⚠️ **Peringatan:** Transaksi yang dihapus tidak bisa dikembalikan!"""
+                
+            elif command == '/edit':
+                args = text.split()[1:] if len(text.split()) > 1 else []
+                if len(args) >= 4:
+                    try:
+                        row_number = int(args[0])
+                        new_amount = args[1]
+                        new_category = args[2]
+                        new_description = ' '.join(args[3:])
+                        return self._edit_transaction(f"{username}_{user_id}", row_number, new_amount, new_category, new_description)
+                    except ValueError:
+                        return "❌ Format salah! Nomor transaksi harus berupa angka."
+                else:
+                    return """✏️ **Edit Transaksi**
+
+**Format:**
+`/edit [nomor] [jumlah_baru] [kategori_baru] [deskripsi_baru]`
+
+**Cara pakai:**
+1. Ketik `/recent` untuk lihat transaksi terbaru
+2. Catat nomor transaksi yang mau diedit
+3. Ketik `/edit` dengan data baru
+
+**Contoh:**
+• `/edit 3 75000 makanan dinner dengan teman`
+• `/edit 1 +1200000 gaji salary bulan ini`
+
+💡 **Tips:** Untuk pemasukan, tambahkan tanda `+` di depan jumlah"""
 
             else:
                 return f"❌ Command tidak dikenal: {command}\n\nKetik /help untuk panduan lengkap."
@@ -1612,12 +1673,219 @@ Gunakan format: `/dailyplan [budget_harian]`
             'categories': {}, 
             'transactions_count': 0,
             'carry_over_balance': 0,
-            'effective_balance': 0,
-            'current_month_balance': 0,
-            'avg_monthly_expense': 0,
-            'historical_spending_pattern': [],
-            'months_with_data': 0
+            'effective_balance': 0
         }
+    
+    def _show_recent_transactions(self, user_id):
+        """Show recent transactions for the user"""
+        try:
+            # Get Google Sheets data
+            service_account_key = os.getenv('GOOGLE_SERVICE_ACCOUNT_KEY')
+            sheets_id = os.getenv('GOOGLE_SHEETS_ID')
+            
+            if not service_account_key or not sheets_id:
+                return "❌ Konfigurasi Google Sheets tidak tersedia."
+            
+            decoded_key = base64.b64decode(service_account_key).decode('utf-8')
+            credentials_info = json.loads(decoded_key)
+            
+            scope = [
+                "https://spreadsheets.google.com/feeds",
+                "https://www.googleapis.com/auth/drive"
+            ]
+            
+            credentials = Credentials.from_service_account_info(credentials_info, scopes=scope)
+            client = gspread.authorize(credentials)
+            sheet = client.open_by_key(sheets_id).sheet1
+            
+            # Get all data
+            all_data = sheet.get_all_values()
+            if len(all_data) <= 1:  # Only header or empty
+                return "📝 Belum ada transaksi yang tercatat."
+            
+            # Filter user's data and get last 10 transactions
+            user_transactions = []
+            for i, row in enumerate(all_data[1:], start=2):  # Skip header, start from row 2
+                if len(row) >= 5 and row[4] == user_id:  # Check sumber column
+                    user_transactions.append({
+                        'row_number': i,
+                        'date': row[0],
+                        'category': row[1],
+                        'description': row[2],
+                        'amount': row[3]
+                    })
+            
+            if not user_transactions:
+                return "📝 Belum ada transaksi Anda yang tercatat."
+            
+            # Get last 10 transactions
+            recent_transactions = user_transactions[-10:]
+            
+            response = "📝 **Transaksi Terbaru Anda:**\n\n"
+            
+            for i, trans in enumerate(reversed(recent_transactions), 1):
+                amount_formatted = f"{float(trans['amount']):,.0f}" if trans['amount'].replace('-', '').replace('+', '').isdigit() else trans['amount']
+                amount_symbol = "💰" if trans['amount'].startswith('+') or float(trans['amount']) > 0 else "💸"
+                
+                response += f"**{i}.** {amount_symbol} {amount_formatted} IDR\n"
+                response += f"   📂 {trans['category'].title()} | 📅 {trans['date']}\n"
+                response += f"   📝 {trans['description']}\n"
+                response += f"   🔢 Row: {trans['row_number']}\n\n"
+            
+            response += "💡 **Cara pakai:**\n"
+            response += "• `/delete [nomor]` - Hapus transaksi\n"
+            response += "• `/edit [nomor] [jumlah] [kategori] [deskripsi]` - Edit transaksi\n\n"
+            response += "⚠️ Gunakan nomor Row untuk delete/edit"
+            
+            return response
+            
+        except Exception as e:
+            return f"❌ Error mengambil data transaksi: {str(e)}"
+    
+    def _delete_transaction(self, user_id, row_number):
+        """Delete a specific transaction"""
+        try:
+            # Get Google Sheets data
+            service_account_key = os.getenv('GOOGLE_SERVICE_ACCOUNT_KEY')
+            sheets_id = os.getenv('GOOGLE_SHEETS_ID')
+            
+            if not service_account_key or not sheets_id:
+                return "❌ Konfigurasi Google Sheets tidak tersedia."
+            
+            decoded_key = base64.b64decode(service_account_key).decode('utf-8')
+            credentials_info = json.loads(decoded_key)
+            
+            scope = [
+                "https://spreadsheets.google.com/feeds",
+                "https://www.googleapis.com/auth/drive"
+            ]
+            
+            credentials = Credentials.from_service_account_info(credentials_info, scopes=scope)
+            client = gspread.authorize(credentials)
+            sheet = client.open_by_key(sheets_id).sheet1
+            
+            # Get specific row data to verify ownership
+            try:
+                row_data = sheet.row_values(row_number)
+                if len(row_data) < 5:
+                    return f"❌ Transaksi tidak ditemukan di row {row_number}."
+                
+                # Check if transaction belongs to user
+                if row_data[4] != user_id:
+                    return "❌ Anda hanya bisa menghapus transaksi milik Anda sendiri."
+                
+                # Show transaction details before deletion
+                amount = row_data[3]
+                category = row_data[1]
+                description = row_data[2]
+                date = row_data[0]
+                
+                # Delete the row
+                sheet.delete_rows(row_number)
+                
+                amount_formatted = f"{float(amount):,.0f}" if amount.replace('-', '').replace('+', '').isdigit() else amount
+                
+                return f"""✅ **Transaksi berhasil dihapus!**
+
+🗑️ **Yang dihapus:**
+💰 Jumlah: {amount_formatted} IDR
+📂 Kategori: {category.title()}
+📝 Deskripsi: {description}
+📅 Tanggal: {date}
+
+💡 Gunakan `/recent` untuk melihat transaksi terbaru."""
+                
+            except Exception as e:
+                return f"❌ Row {row_number} tidak ditemukan atau tidak valid: {str(e)}"
+                
+        except Exception as e:
+            return f"❌ Error menghapus transaksi: {str(e)}"
+    
+    def _edit_transaction(self, user_id, row_number, new_amount, new_category, new_description):
+        """Edit a specific transaction"""
+        try:
+            # Get Google Sheets data
+            service_account_key = os.getenv('GOOGLE_SERVICE_ACCOUNT_KEY')
+            sheets_id = os.getenv('GOOGLE_SHEETS_ID')
+            
+            if not service_account_key or not sheets_id:
+                return "❌ Konfigurasi Google Sheets tidak tersedia."
+            
+            decoded_key = base64.b64decode(service_account_key).decode('utf-8')
+            credentials_info = json.loads(decoded_key)
+            
+            scope = [
+                "https://spreadsheets.google.com/feeds",
+                "https://www.googleapis.com/auth/drive"
+            ]
+            
+            credentials = Credentials.from_service_account_info(credentials_info, scopes=scope)
+            client = gspread.authorize(credentials)
+            sheet = client.open_by_key(sheets_id).sheet1
+            
+            # Get specific row data to verify ownership
+            try:
+                row_data = sheet.row_values(row_number)
+                if len(row_data) < 5:
+                    return f"❌ Transaksi tidak ditemukan di row {row_number}."
+                
+                # Check if transaction belongs to user
+                if row_data[4] != user_id:
+                    return "❌ Anda hanya bisa mengedit transaksi milik Anda sendiri."
+                
+                # Store old values for confirmation
+                old_amount = row_data[3]
+                old_category = row_data[1]
+                old_description = row_data[2]
+                
+                # Process new amount (handle + prefix for income)
+                is_income = new_amount.startswith('+')
+                clean_amount = new_amount.replace('+', '').replace(',', '').replace('.', '')
+                
+                try:
+                    amount_value = int(clean_amount)
+                    final_amount = f"+{amount_value}" if is_income else str(-abs(amount_value))
+                except ValueError:
+                    return "❌ Jumlah harus berupa angka. Contoh: `75000` atau `+1000000`"
+                
+                # Standardize category
+                standardized_category = self._standardize_category(new_category.lower())
+                
+                # Update the transaction
+                current_date = get_jakarta_time().strftime('%Y-%m-%d %H:%M:%S')
+                
+                # Update specific cells
+                sheet.update_cell(row_number, 1, current_date)  # Update timestamp
+                sheet.update_cell(row_number, 2, standardized_category)  # Category
+                sheet.update_cell(row_number, 3, new_description)  # Description
+                sheet.update_cell(row_number, 4, final_amount)  # Amount
+                # Keep user_id (column 5) unchanged
+                
+                old_amount_formatted = f"{float(old_amount):,.0f}" if old_amount.replace('-', '').replace('+', '').isdigit() else old_amount
+                new_amount_formatted = f"{float(final_amount):,.0f}" if final_amount.replace('-', '').replace('+', '').isdigit() else final_amount
+                
+                return f"""✅ **Transaksi berhasil diedit!**
+
+🔄 **Perubahan:**
+
+**SEBELUM:**
+💰 {old_amount_formatted} IDR
+📂 {old_category.title()}
+📝 {old_description}
+
+**SESUDAH:**
+💰 {new_amount_formatted} IDR
+📂 {standardized_category.title()}
+📝 {new_description}
+📅 {current_date}
+
+💡 Gunakan `/recent` untuk melihat transaksi terbaru."""
+                
+            except Exception as e:
+                return f"❌ Row {row_number} tidak ditemukan atau tidak valid: {str(e)}"
+                
+        except Exception as e:
+            return f"❌ Error mengedit transaksi: {str(e)}"
     
     def _count_months_with_data(self, data):
         """Count number of months that have transaction data"""
