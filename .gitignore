@@ -63,3 +63,6 @@ temp/
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+debug_bot.py
+DEPLOYMENT_CHECKLIST.md
+setup_deployment.py

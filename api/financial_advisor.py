@@ -257,8 +257,7 @@ class FinancialAdvisor:
         sorted_categories = sorted(categories.items(), key=lambda x: x[1], reverse=True)[:3]
         for cat, amount in sorted_categories:
             percentage = (amount / total_expense * 100) if total_expense > 0 else 0
-            context += f"- {cat}: {amount:,.0f} IDR ({percentage:.1f}%)
-"
+            context += f"- {cat}: {amount:,.0f} IDR ({percentage:.1f}%)\n"
         
         return context
     
@@ -300,49 +299,38 @@ class FinancialAdvisor:
         """
         
         if first_transaction_date:
-            context += f"- Mulai tracking sejak: {first_transaction_date}
-"
+            context += f"- Mulai tracking sejak: {first_transaction_date}\n"
         
         # Historical spending pattern analysis
         if len(historical_pattern) >= 2:
-            context += f"
-TREND PENGELUARAN (3 bulan terakhir):
-"
+            context += f"\nTREND PENGELUARAN (3 bulan terakhir):\n"
             for i, amount in enumerate(historical_pattern):
-                context += f"- Bulan {i+1} lalu: {amount:,.0f} IDR
-"
+                context += f"- Bulan {i+1} lalu: {amount:,.0f} IDR\n"
             
             # Calculate trend
             if historical_pattern[0] > historical_pattern[-1]:
                 trend_pct = ((historical_pattern[0] - historical_pattern[-1]) / historical_pattern[-1]) * 100
-                context += f"- Trend: MENURUN {trend_pct:.1f}% (bagus!)
-"
+                context += f"- Trend: MENURUN {trend_pct:.1f}% (bagus!)\n"
             else:
                 trend_pct = ((historical_pattern[-1] - historical_pattern[0]) / historical_pattern[0]) * 100
-                context += f"- Trend: NAIK {trend_pct:.1f}% (perlu perhatian)
-"
+                context += f"- Trend: NAIK {trend_pct:.1f}% (perlu perhatian)\n"
         
         # Spending ratio analysis
         if effective_balance != 0:
             if carry_over_balance > 0:
                 sustainability_months = carry_over_balance / avg_monthly_expense if avg_monthly_expense > 0 else 0
-                context += f"
-ANALISIS SUSTAINABILITY:
-"
-                context += f"- Dengan saldo carry-over, bisa bertahan {sustainability_months:.1f} bulan lagi
-"
+                context += f"\nANALISIS SUSTAINABILITY:\n"
+                context += f"- Dengan saldo carry-over, bisa bertahan {sustainability_months:.1f} bulan lagi\n"
             
             if total_income > 0:
                 expense_ratio = (total_expense / total_income) * 100
-                context += f"- Expense ratio bulan ini: {expense_ratio:.1f}%
-"
+                context += f"- Expense ratio bulan ini: {expense_ratio:.1f}%\n"
         
         context += "\nBREAKDOWN KATEGORI BULAN INI:\n"        # Detailed category breakdown
         sorted_categories = sorted(categories.items(), key=lambda x: x[1], reverse=True)
         for cat, amount in sorted_categories:
             percentage = (amount / total_expense * 100) if total_expense > 0 else 0
-            context += f"- {cat.title()}: {amount:,.0f} IDR ({percentage:.1f}%)
-"
+            context += f"- {cat.title()}: {amount:,.0f} IDR ({percentage:.1f}%)\n"
         
         return context
     
