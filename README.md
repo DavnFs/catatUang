@@ -349,3 +349,18 @@ We welcome contributions! Please feel free to submit pull requests.
 
 
 Deploy your own CatatUang bot today and take control of your finances with AI-powered insights! 🚀
+
+## 🧪 Local Testing Tool (FinancialAdvisor)
+
+You can test the AI FinancialAdvisor logic locally without Telegram using the CLI tool:
+
+```
+python tools/test_financial_advisor.py transaction --amount 50000 --category makanan --desc "sarapan nasi uduk"
+python tools/test_financial_advisor.py monthly
+python tools/test_financial_advisor.py budget --income 4000000
+python tools/test_financial_advisor.py budgetcheck --amount 500000 --days 14
+python tools/test_financial_advisor.py dailyplan --daily 75000
+```
+
+It will auto-detect the available AI provider (Groq, Gemini, OpenAI) based on your `.env`. If none available, it falls back to rule-based tips.
+
