@@ -9,6 +9,9 @@ requests==2.31.0
 
 # Environment variables (for local development)
 python-dotenv==1.0.0
+gspread
+google-auth
+google-api-python-client
 
 # AI Integration Dependencies
 openai>=1.0.0

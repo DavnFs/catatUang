@@ -364,3 +364,21 @@ python tools/test_financial_advisor.py dailyplan --daily 75000
 
 It will auto-detect the available AI provider (Groq, Gemini, OpenAI) based on your `.env`. If none available, it falls back to rule-based tips.
 
+### Mengganti model Groq
+
+Jika ingin menggunakan model Groq lain (mis. gpt-120b-oss), atau cek model yang tersedia dengan 
+```
+curl https://api.groq.com/openai/v1/models \
+     -H "Authorization: Bearer $GROQ_API_KEY"  ///isi dengan api key anda
+
+```
+
+tambahkan variabel lingkungan `GROQ_MODEL` di `.env`:
+
+```
+GROQ_MODEL=gpt-oss-120b
+GROQ_API_KEY=gsk_...
+```
+
+Tool sudah membaca `GROQ_MODEL` dan akan memakai model tersebut saat memanggil Groq API.
+

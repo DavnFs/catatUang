@@ -348,34 +348,36 @@ class handler(BaseHTTPRequestHandler):
         try:
             # Parse message: amount category description
             parts = text.strip().split(' ', 2)
-            
+
             if len(parts) < 2:
-                return "❌ Format salah!\n\n✅ Contoh yang benar:\n• `50000 makanan nasi padang`\n• `+1000000 gaji salary`\n\nKetik /help untuk panduan lengkap."
-            
+                return ("❌ Format salah!\n\n✅ Contoh yang benar:\n"
+                        "• `50000 makanan nasi padang`\n"
+                        "• `+1000000 gaji salary`\n\nKetik /help untuk panduan lengkap.")
+
             amount_str = parts[0]
             kategori_input = parts[1].lower()
             deskripsi = parts[2] if len(parts) > 2 else ""
-            
+
             # Standardize category with fuzzy matching
             kategori = self._standardize_category(kategori_input)
             suggestion_text = self._get_category_suggestion(kategori_input, kategori)
-            
+
             # Parse amount (check for income with + prefix)
             is_income = amount_str.startswith('+')
             if is_income:
                 amount_str = amount_str[1:]  # Remove + prefix
-            
+
             try:
                 amount = int(amount_str.replace(',', '').replace('.', ''))
             except ValueError:
                 return "❌ Jumlah harus berupa angka!\n\n✅ Contoh: `50000 makanan nasi padang`"
-            
+
             if amount <= 0:
                 return "❌ Jumlah harus lebih dari 0!"
-            
+
             # Get Jakarta time for the transaction
             jakarta_time = get_jakarta_time()
-            
+
             # Save to Google Sheets
             success = self._save_to_sheets({
                 'tanggal': jakarta_time.strftime('%Y-%m-%d %H:%M:%S'),
@@ -385,58 +387,69 @@ class handler(BaseHTTPRequestHandler):
                 'sumber': f"telegram_{user_id}",
                 'tipe': 'pemasukan' if is_income else 'pengeluaran'
             })
-            
+
             if success:
+                # Hitung saldo user setelah transaksi ini
+                user_data = self._get_user_financial_data(user_id)
+                total_income = user_data.get("total_income", 0)
+                total_expense = user_data.get("total_expense", 0)
+                balance = total_income - total_expense
+
+                saving_target = 1_000_000
+                available_after_saving = max(0, balance - saving_target)
+
+                # Build saldo info message
+                saldo_info = (
+                    f"\n\n📊 Saldo Saat Ini: Rp {balance:,}".replace(",", ".") +
+                    f"\n💎 Tabungan (default): Rp {saving_target:,}".replace(",", ".") +
+                    f"\n💵 Bisa Dipakai: Rp {available_after_saving:,}".replace(",", ".")
+                )
+
                 # Use AI-enhanced response if available
                 if AI_ENABLED and os.getenv('AI_INSIGHTS_ENABLED', 'true').lower() == 'true':
                     try:
-                        # Get AI insight for the transaction
                         advisor = FinancialAdvisor()
-                        user_data = self._get_user_financial_data(user_id)
-                        
                         ai_tip = advisor.get_transaction_advice(
                             amount=amount,
                             category=kategori,
                             description=deskripsi,
                             user_data=user_data
                         )
-                        
-                        # Format AI-enhanced response
+
                         tipe_emoji = "💰" if is_income else "💸"
                         tipe_text = "Pemasukan" if is_income else "Pengeluaran"
                         formatted_amount = f"Rp {amount:,}".replace(',', '.')
-                        
-                        return f"""{tipe_emoji} **{tipe_text} Tercatat!**
+
+                        return (f"""{tipe_emoji} **{tipe_text} Tercatat!**
 
 💵 Jumlah: {formatted_amount}
 📂 Kategori: {kategori.title()}
 📝 Deskripsi: {deskripsi}
 📅 Waktu: {jakarta_time.strftime('%d/%m/%Y %H:%M')} WIB
 
-✅ Data tersimpan di Google Sheets!
+✅ Data tersimpan di Google Sheets!{saldo_info}
 
-{ai_tip}{suggestion_text}"""
+{ai_tip}{suggestion_text}""")
                     except Exception as e:
                         print(f"AI response error: {e}")
-                        # Fall back to standard response
-                        pass
-                
+                        # fallback ke standard response
+
                 # Standard response (fallback)
                 tipe_emoji = "💰" if is_income else "💸"
                 tipe_text = "Pemasukan" if is_income else "Pengeluaran"
                 formatted_amount = f"Rp {amount:,}".replace(',', '.')
-                
-                return f"""{tipe_emoji} **{tipe_text} Tercatat!**
+
+                return (f"""{tipe_emoji} **{tipe_text} Tercatat!**
 
 💵 Jumlah: {formatted_amount}
 📂 Kategori: {kategori.title()}
 📝 Deskripsi: {deskripsi}
 📅 Waktu: {jakarta_time.strftime('%d/%m/%Y %H:%M')} WIB
 
-✅ Data tersimpan di Google Sheets!{suggestion_text}"""
+✅ Data tersimpan di Google Sheets!{saldo_info}{suggestion_text}""")
             else:
                 return "❌ Gagal menyimpan data. Coba lagi dalam beberapa saat."
-                
+
         except Exception as e:
             return f"❌ Error: {str(e)}\n\nKetik /help untuk format yang benar."
 
@@ -572,16 +585,14 @@ class handler(BaseHTTPRequestHandler):
             return False
 
     def _generate_report_summary(self, period):
-        """Generate expense report summary"""
+        """Generate expense report summary + smart advice"""
         try:
-            # Get data from report API endpoint
             report_data = self._get_sheets_data()
             if not report_data:
                 return "❌ Tidak bisa mengambil data laporan."
-            
-            # Filter by period using Jakarta timezone
+
             jakarta_now = get_jakarta_time()
-            
+
             if period == 'today':
                 start_date = jakarta_now.strftime('%Y-%m-%d')
                 filtered_data = [row for row in report_data if row.get('Tanggal', '').startswith(start_date)]
@@ -601,15 +612,19 @@ class handler(BaseHTTPRequestHandler):
             else:
                 filtered_data = report_data
                 title = "📊 **Laporan Keseluruhan**"
-            
+
             if not filtered_data:
-                return f"{title}\n\n📝 Belum ada transaksi dalam period ini."
-            
-            # Calculate summary
+                return f"{title}\n\n📝 Belum ada transaksi dalam periode ini."
+
+            # Summary numbers
             total_income = sum(int(row.get('Jumlah', 0)) for row in filtered_data if int(row.get('Jumlah', 0)) > 0)
             total_expense = abs(sum(int(row.get('Jumlah', 0)) for row in filtered_data if int(row.get('Jumlah', 0)) < 0))
             balance = total_income - total_expense
-            
+
+            # Target saving
+            saving_target = 1_000_000
+            available_after_saving = max(0, balance - saving_target)
+
             # Category breakdown
             categories = {}
             for row in filtered_data:
@@ -617,8 +632,8 @@ class handler(BaseHTTPRequestHandler):
                 amount = int(row.get('Jumlah', 0))
                 if amount < 0:  # Expense
                     categories[cat] = categories.get(cat, 0) + abs(amount)
-            
-            # Format response with Jakarta time
+
+            # Base summary text
             result = f"""{title}
 📅 {jakarta_now.strftime('%d/%m/%Y')} WIB
 
@@ -626,16 +641,36 @@ class handler(BaseHTTPRequestHandler):
 • Pemasukan: Rp {total_income:,}
 • Pengeluaran: Rp {total_expense:,}
 • Saldo: Rp {balance:,}
+• Target Tabungan: Rp {saving_target:,}
+• Bisa Dipakai: Rp {available_after_saving:,}
 
-📊 **Per Kategori:**"""
-            
+📊 **Per Kategori:**""".replace(',', '.')
+
             for cat, amount in sorted(categories.items(), key=lambda x: x[1], reverse=True):
-                result += f"\n• {cat.title()}: Rp {amount:,}"
-            
+                result += f"\n• {cat.title()}: Rp {amount:,}".replace(',', '.')
+
             result += f"\n\n📈 Total transaksi: {len(filtered_data)}"
-            
-            return result.replace(',', '.')
-            
+
+            # --- Smart Insights ---
+            insights = []
+            if total_expense > 0:
+                for cat, val in categories.items():
+                    prop = (val / total_expense) * 100
+                    if prop > 30:
+                        insights.append(f"⚠️ Pengeluaran {cat.title()} {prop:.1f}% dari total, terlalu tinggi.")
+                    elif prop > 20:
+                        insights.append(f"ℹ️ Pengeluaran {cat.title()} {prop:.1f}%, masih aman tapi bisa dioptimalkan.")
+
+            if balance < saving_target:
+                insights.append("⚠️ Saldo belum mencapai target tabungan Rp 1.000.000. Coba kurangi pengeluaran variabel.")
+            else:
+                insights.append(f"✅ Target tabungan Rp {saving_target:,} tercapai bulan ini!".replace(',', '.'))
+
+            if insights:
+                result += "\n\n🔎 **Insight:**\n" + "\n".join(insights)
+
+            return result
+
         except Exception as e:
             return f"❌ Error generating report: {str(e)}"
 

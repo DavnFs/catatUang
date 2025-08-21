@@ -88,6 +88,35 @@ def run_daily_plan(args):
     print(result)
 
 
+def run_chat(args):
+    advisor = FinancialAdvisor()
+    print(f"Provider terpilih: {advisor.selected_provider}\n")
+    # user profile can be passed from SAMPLE_USER_DATA for richer memory
+    result = advisor.chat_with_user(args.user, args.message, SAMPLE_USER_DATA, cache_enabled=args.cache, verbose=args.verbose, with_reasoning=getattr(args, 'reasoning', False))
+    print(result)
+
+
+def run_estimate(args):
+    advisor = FinancialAdvisor()
+    print(f"Provider terpilih: {advisor.selected_provider}\n")
+    res = advisor.estimate_daily_allowance(int(args.balance), int(args.days), non_cook=args.non_cook, with_reasoning=getattr(args, 'reasoning', False))
+    print(res)
+
+
+def run_advbudget(args):
+    advisor = FinancialAdvisor()
+    print(f"Provider terpilih: {advisor.selected_provider}\n")
+    res = advisor.advanced_budget_plan(int(args.income), SAMPLE_USER_DATA, savings_goal=(int(args.savings_goal) if args.savings_goal else None), with_reasoning=getattr(args, 'reasoning', False))
+    print(res)
+
+
+def run_advise(args):
+    advisor = FinancialAdvisor()
+    print(f"Provider terpilih: {advisor.selected_provider}\n")
+    res = advisor.advanced_advice(float(args.amount), args.category, args.desc, SAMPLE_USER_DATA, depth=args.depth, with_reasoning=getattr(args, 'reasoning', False))
+    print(res)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Test FinancialAdvisor outputs")
     sub = parser.add_subparsers(dest="mode", required=True)
@@ -114,6 +143,35 @@ def main():
     p_daily.add_argument("--daily", type=float, required=True)
     p_daily.add_argument("--priorities", nargs="*", default=None)
     p_daily.set_defaults(func=run_daily_plan)
+
+    p_chat = sub.add_parser("chat", help="Stateful chat mode (multi-turn)")
+    p_chat.add_argument("--user", type=str, required=True, help="user id for session (e.g., username)")
+    p_chat.add_argument("--message", type=str, required=True, help="message from user")
+    p_chat.add_argument("--cache/--no-cache", dest="cache", default=True)
+    p_chat.add_argument("--verbose", dest="verbose", action='store_true', default=False, help="Request more detailed response from fallback or signal to AI")
+    p_chat.add_argument("--reasoning", dest="reasoning", action='store_true', default=False, help="Request a short, numbered rationale with the response")
+    p_chat.set_defaults(func=lambda args: run_chat(args))
+
+    p_est = sub.add_parser("estimate", help="Estimate daily allowance from balance")
+    p_est.add_argument("--balance", type=int, required=True)
+    p_est.add_argument("--days", type=int, required=True)
+    p_est.add_argument("--non-cook", dest="non_cook", action="store_true", default=False, help="Assume non-cook (eating out) allocations")
+    p_est.add_argument("--reasoning", dest="reasoning", action='store_true', default=False, help="Include short rationale in output")
+    p_est.set_defaults(func=lambda args: run_estimate(args))
+
+    p_ab = sub.add_parser("advbudget", help="Advanced budget planner")
+    p_ab.add_argument("--income", type=int, required=True)
+    p_ab.add_argument("--savings_goal", type=int, required=False)
+    p_ab.add_argument("--reasoning", dest="reasoning", action='store_true', default=False, help="Include short rationale in output")
+    p_ab.set_defaults(func=lambda args: run_advbudget(args))
+
+    p_ad = sub.add_parser("advise", help="Advanced advice for a transaction")
+    p_ad.add_argument("--amount", type=float, required=True)
+    p_ad.add_argument("--category", type=str, required=True)
+    p_ad.add_argument("--desc", type=str, required=True)
+    p_ad.add_argument("--depth", type=int, default=3)
+    p_ad.add_argument("--reasoning", dest="reasoning", action='store_true', default=False, help="Include short rationale in output")
+    p_ad.set_defaults(func=lambda args: run_advise(args))
 
     args = parser.parse_args()
     args.func(args)
