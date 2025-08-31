@@ -27,6 +27,9 @@ def get_jakarta_time():
     return datetime.now(JAKARTA_TZ)
 
 class handler(BaseHTTPRequestHandler):
+    # Class attribute for AI provider
+    selected_provider = 'groq' if AI_ENABLED else None
+    
     def do_POST(self):
         """Handle Telegram webhook"""
         try:
@@ -409,11 +412,27 @@ class handler(BaseHTTPRequestHandler):
                 if AI_ENABLED and os.getenv('AI_INSIGHTS_ENABLED', 'true').lower() == 'true':
                     try:
                         advisor = FinancialAdvisor()
+                        
+                        # Get transaction advice
                         ai_tip = advisor.get_transaction_advice(
                             amount=amount,
                             category=kategori,
                             description=deskripsi,
                             user_data=user_data
+                        )
+                        
+                        # Get personalized advice based on spending patterns and remaining balance
+                        daily_spending_pattern = self._calculate_daily_spending_pattern(user_id)
+                        remaining_days = self._get_remaining_days_in_month()
+                        daily_budget = self._calculate_daily_budget(available_after_saving, remaining_days)
+                        
+                        personalized_advice = self._generate_personalized_advice(
+                            amount=amount,
+                            category=kategori,
+                            user_data=user_data,
+                            daily_spending_pattern=daily_spending_pattern,
+                            daily_budget=daily_budget,
+                            remaining_days=remaining_days
                         )
 
                         tipe_emoji = "💰" if is_income else "💸"
@@ -429,7 +448,9 @@ class handler(BaseHTTPRequestHandler):
 
 ✅ Data tersimpan di Google Sheets!{saldo_info}
 
-{ai_tip}{suggestion_text}""")
+{ai_tip}
+
+{personalized_advice}{suggestion_text}""")
                     except Exception as e:
                         print(f"AI response error: {e}")
                         # fallback ke standard response
@@ -1710,6 +1731,115 @@ Gunakan format: `/dailyplan [budget_harian]`
             'carry_over_balance': 0,
             'effective_balance': 0
         }
+        
+    def _calculate_daily_spending_pattern(self, user_id):
+        """Calculate daily spending pattern for the current month"""
+        try:
+            # Get data from Google Sheets
+            report_data = self._get_sheets_data()
+            if not report_data:
+                return {}
+            
+            jakarta_now = get_jakarta_time()
+            current_month = jakarta_now.strftime('%Y-%m')
+            
+            # Filter data for current month
+            monthly_data = [row for row in report_data if row.get('Tanggal', '').startswith(current_month)]
+            
+            # Group expenses by day
+            daily_expenses = {}
+            for row in monthly_data:
+                if int(row.get('Jumlah', 0)) < 0:  # Expenses only
+                    day = row.get('Tanggal', '').split(' ')[0].split('-')[2]  # Extract day from YYYY-MM-DD
+                    daily_expenses[day] = daily_expenses.get(day, 0) + abs(int(row.get('Jumlah', 0)))
+            
+            # Calculate average daily expense
+            if daily_expenses:
+                total_days = len(daily_expenses)
+                total_expense = sum(daily_expenses.values())
+                avg_daily_expense = total_expense / total_days if total_days > 0 else 0
+            else:
+                avg_daily_expense = 0
+            
+            return {
+                'daily_expenses': daily_expenses,
+                'avg_daily_expense': avg_daily_expense
+            }
+        except Exception as e:
+            print(f"Error calculating daily spending pattern: {e}")
+            return {'daily_expenses': {}, 'avg_daily_expense': 0}
+    
+    def _get_remaining_days_in_month(self):
+        """Get the number of remaining days in the current month"""
+        jakarta_now = get_jakarta_time()
+        last_day = (jakarta_now.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        return (last_day.day - jakarta_now.day) + 1  # Include today
+    
+    def _calculate_daily_budget(self, available_balance, remaining_days):
+        """Calculate recommended daily budget based on available balance and remaining days"""
+        if remaining_days <= 0:
+            return 0
+        return available_balance / remaining_days
+    
+    def _generate_personalized_advice(self, amount, category, user_data, daily_spending_pattern, daily_budget, remaining_days):
+        """Generate personalized advice based on spending patterns and remaining balance"""
+        try:
+            # If AI is available, use it for more sophisticated advice
+            if AI_ENABLED and self.selected_provider == 'groq' and requests:
+                advisor = FinancialAdvisor()
+                
+                # Prepare context for AI
+                avg_daily_expense = daily_spending_pattern.get('avg_daily_expense', 0)
+                formatted_daily_budget = f"Rp {daily_budget:,.0f}".replace(",", ".")
+                formatted_avg_daily = f"Rp {avg_daily_expense:,.0f}".replace(",", ".")
+                
+                prompt = f"""
+                Berikan saran keuangan personal berdasarkan data berikut:
+                
+                Transaksi saat ini: {amount} untuk kategori {category}
+                Sisa hari dalam bulan ini: {remaining_days} hari
+                Budget harian yang direkomendasikan: {formatted_daily_budget}
+                Rata-rata pengeluaran harian bulan ini: {formatted_avg_daily}
+                
+                Berikan 1-2 saran konkret yang:
+                1. Membantu user mengelola keuangan hingga akhir bulan
+                2. Berdasarkan pola pengeluaran dan kategori transaksi saat ini
+                3. Memberikan tips praktis untuk menghemat
+                
+                Format output:
+                💡 **Saran Personal:**
+                [saran dalam 2-3 kalimat singkat]
+                """
+                
+                try:
+                    return advisor._get_ai_response(prompt, with_reasoning=False)
+                except Exception as e:
+                    print(f"Error getting AI advice: {e}")
+                    # Fallback to rule-based advice
+            
+            # Rule-based advice as fallback
+            advice = ["💡 **Saran Personal:**"]
+            
+            # Compare daily budget with average daily expense
+            avg_daily_expense = daily_spending_pattern.get('avg_daily_expense', 0)
+            
+            if avg_daily_expense > daily_budget and daily_budget > 0:
+                advice.append(f"Pengeluaran harian Anda (Rp {avg_daily_expense:,.0f}) melebihi budget ideal (Rp {daily_budget:,.0f}). Coba kurangi {category} sebesar 10-15% untuk menyeimbangkan keuangan.".replace(",", "."))
+            elif daily_budget > 0:
+                advice.append(f"Dengan sisa Rp {daily_budget:,.0f}/hari untuk {remaining_days} hari, Anda masih bisa mengalokasikan Rp {daily_budget * 0.2:,.0f} untuk kebutuhan non-esensial.".replace(",", "."))
+            
+            # Category-specific advice
+            if category.lower() in ['makanan', 'food']:
+                advice.append("Coba meal prep 2-3x seminggu untuk menghemat 20-30% dari budget makanan.")
+            elif category.lower() in ['transport', 'transportasi']:
+                advice.append("Pertimbangkan transportasi umum atau gabungkan beberapa keperluan dalam satu perjalanan untuk menghemat biaya transport.")
+            elif category.lower() in ['hiburan', 'entertainment']:
+                advice.append("Cari alternatif hiburan gratis atau murah seperti taman kota, museum dengan hari gratis, atau aktivitas rumahan.")
+            
+            return "\n".join(advice)
+        except Exception as e:
+            print(f"Error generating personalized advice: {e}")
+            return ""
     
     def _show_recent_transactions(self, user_id):
         """Show recent transactions for the user"""
