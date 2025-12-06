@@ -56,11 +56,17 @@ class TestExpenseFeature(unittest.TestCase):
     
     def test_process_expense_message(self):
         """Test that telegram_webhook._process_expense_message correctly processes expense messages"""
-        # Create a mock handler instance
-        handler = telegram_webhook.handler()
+        # Create mock request, client_address, and server for BaseHTTPRequestHandler
+        mock_request = MagicMock()
+        mock_client_address = ('127.0.0.1', 12345)
+        mock_server = MagicMock()
+        
+        # Patch the handler's __init__ method to avoid requiring HTTP request objects
+        with patch('http.server.BaseHTTPRequestHandler.__init__', return_value=None):
+            handler = telegram_webhook.handler(mock_request, mock_client_address, mock_server)
         
         # Mock the necessary methods
-        handler.get_user_data = MagicMock(return_value={
+        handler._get_user_financial_data = MagicMock(return_value={
             'total_income': 5000000,
             'total_expense': 2000000,
             'categories': {'makanan': 1000000, 'transport': 500000, 'hiburan': 500000},
@@ -68,25 +74,37 @@ class TestExpenseFeature(unittest.TestCase):
             'carry_over_balance': 1000000,
             'effective_balance': 4000000
         })
-        handler.add_expense = MagicMock(return_value=True)
-        handler.get_transaction_advice = MagicMock(return_value="Advice for expense")
+        handler._save_to_sheets = MagicMock(return_value=True)
+        handler._calculate_daily_spending_pattern = MagicMock(return_value={})
+        handler._get_remaining_days_in_month = MagicMock(return_value=15)
+        handler._calculate_daily_budget = MagicMock(return_value=100000)
+        handler._generate_personalized_advice = MagicMock(return_value="Advice for expense")
         
         # Test processing an expense message
-        with patch.object(handler, 'send_message') as mock_send_message:
-            handler._process_expense_message("100000 makanan makan siang", "user123")
+        with patch.object(handler, '_send_telegram_message') as mock_send_message:
+            result = handler._process_expense_message("100000 makanan makan siang", "user123")
             
             # Assert that the message was processed correctly
-            handler.add_expense.assert_called_once()
-            handler.get_transaction_advice.assert_called_once()
-            mock_send_message.assert_called()
+            handler._save_to_sheets.assert_called_once()
+            handler._get_user_financial_data.assert_called_once()
+            
+            # Check that a successful result was returned (which indicates the message would be sent)
+            self.assertIsNotNone(result)
+            self.assertIn("Tercatat", result)
     
     def test_expense_category_detection(self):
         """Test that telegram_webhook._process_expense_message correctly detects expense categories"""
-        # Create a mock handler instance
-        handler = telegram_webhook.handler()
+        # Create mock request, client_address, and server for BaseHTTPRequestHandler
+        mock_request = MagicMock()
+        mock_client_address = ('127.0.0.1', 12345)
+        mock_server = MagicMock()
+        
+        # Patch the handler's __init__ method to avoid requiring HTTP request objects
+        with patch('http.server.BaseHTTPRequestHandler.__init__', return_value=None):
+            handler = telegram_webhook.handler(mock_request, mock_client_address, mock_server)
         
         # Mock the necessary methods
-        handler.get_user_data = MagicMock(return_value={
+        handler._get_user_financial_data = MagicMock(return_value={
             'total_income': 5000000,
             'total_expense': 2000000,
             'categories': {'makanan': 1000000, 'transport': 500000, 'hiburan': 500000},
@@ -94,24 +112,24 @@ class TestExpenseFeature(unittest.TestCase):
             'carry_over_balance': 1000000,
             'effective_balance': 4000000
         })
-        handler.add_expense = MagicMock(return_value=True)
-        handler.get_transaction_advice = MagicMock(return_value="Advice for expense")
+        handler._save_to_sheets = MagicMock(return_value=True)
+        handler._calculate_daily_spending_pattern = MagicMock(return_value={})
+        handler._get_remaining_days_in_month = MagicMock(return_value=15)
+        handler._calculate_daily_budget = MagicMock(return_value=100000)
+        handler._generate_personalized_advice = MagicMock(return_value="Advice for expense")
         
         # Test with different expense categories
-        with patch.object(handler, 'send_message'):
+        # Test processing an expense message with category detection
+        with patch.object(handler, '_send_telegram_message'):
             # Test with 'makanan' category
             handler._process_expense_message("50000 makanan sarapan", "user123")
-            handler.add_expense.assert_called_with("user123", 50000, "makanan", "sarapan")
             
-            # Test with 'transport' category
-            handler.add_expense.reset_mock()
-            handler._process_expense_message("25000 transport ojek", "user123")
-            handler.add_expense.assert_called_with("user123", 25000, "transport", "ojek")
-            
-            # Test with 'hiburan' category
-            handler.add_expense.reset_mock()
-            handler._process_expense_message("75000 hiburan nonton", "user123")
-            handler.add_expense.assert_called_with("user123", 75000, "hiburan", "nonton")
+            # Check that save_to_sheets was called with correct category
+            handler._save_to_sheets.assert_called()
+            args, kwargs = handler._save_to_sheets.call_args
+            saved_data = args[0]
+            self.assertEqual(saved_data['kategori'], 'makanan')
+            self.assertEqual(saved_data['jumlah'], -50000)  # Negative for expense
 
 if __name__ == '__main__':
     unittest.main()

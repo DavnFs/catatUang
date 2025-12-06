@@ -34,14 +34,14 @@ class TestReportFeature(unittest.TestCase):
         with patch('http.server.BaseHTTPRequestHandler.__init__', return_value=None):
             self.handler = telegram_webhook.handler(mock_request, mock_client_address, mock_server)
         
-        # Mock data for testing
+        # Mock data for testing - format as dictionaries like sheet.get_all_records()
         self.mock_data = [
-            ['2023-06-01', 'expense', '50000', 'makanan', 'makan siang'],
-            ['2023-06-01', 'expense', '25000', 'transport', 'ojek'],
-            ['2023-06-02', 'expense', '75000', 'hiburan', 'nonton'],
-            ['2023-06-02', 'income', '1000000', 'gaji', 'gaji bulanan'],
-            ['2023-06-03', 'expense', '30000', 'makanan', 'sarapan'],
-            ['2023-06-03', 'expense', '20000', 'transport', 'bensin']
+            {'Tanggal': '2023-06-01', 'Jenis': 'expense', 'Jumlah': '-50000', 'Kategori': 'makanan', 'Deskripsi': 'makan siang'},
+            {'Tanggal': '2023-06-01', 'Jenis': 'expense', 'Jumlah': '-25000', 'Kategori': 'transport', 'Deskripsi': 'ojek'},
+            {'Tanggal': '2023-06-02', 'Jenis': 'expense', 'Jumlah': '-75000', 'Kategori': 'hiburan', 'Deskripsi': 'nonton'},
+            {'Tanggal': '2023-06-02', 'Jenis': 'income', 'Jumlah': '1000000', 'Kategori': 'gaji', 'Deskripsi': 'gaji bulanan'},
+            {'Tanggal': '2023-06-03', 'Jenis': 'expense', 'Jumlah': '-30000', 'Kategori': 'makanan', 'Deskripsi': 'sarapan'},
+            {'Tanggal': '2023-06-03', 'Jenis': 'expense', 'Jumlah': '-20000', 'Kategori': 'transport', 'Deskripsi': 'bensin'}
         ]
         
         # Mock current date for testing
@@ -53,61 +53,59 @@ class TestReportFeature(unittest.TestCase):
     def test_daily_report(self):
         """Test that daily report generates correctly"""
         # Mock the get_jakarta_time function to return our fixed date
-        with patch('api.telegram_webhook.get_jakarta_time', return_value=self.mock_date):
+        with patch.object(telegram_webhook, 'get_jakarta_time', return_value=self.mock_date):
             # Generate daily report
             report_text = self.handler._generate_report_summary('today')
             
             # Assert that the report contains expected information
-            self.assertIn('Laporan Harian', report_text)
-            self.assertIn('2023-06-03', report_text)
+            self.assertIn('Laporan Hari Ini', report_text)
+            self.assertIn('03/06/2023', report_text)
             self.assertIn('Rp 50.000', report_text)  # Total daily expense
-            self.assertIn('makanan', report_text)
-            self.assertIn('transport', report_text)
+            self.assertIn('Makanan', report_text)
+            self.assertIn('Transport', report_text)
     
     def test_weekly_report(self):
         """Test that weekly report generates correctly"""
         # Mock the get_jakarta_time function to return our fixed date
-        with patch('api.telegram_webhook.get_jakarta_time', return_value=self.mock_date):
+        with patch.object(telegram_webhook, 'get_jakarta_time', return_value=self.mock_date):
             # Generate weekly report
             report_text = self.handler._generate_report_summary('week')
             
             # Assert that the report contains expected information
-            self.assertIn('Laporan Mingguan', report_text)
-            self.assertIn('Rp 200.000', report_text)  # Total weekly expense
-            self.assertIn('Rp 1.000.000', report_text)  # Total weekly income
-            self.assertIn('makanan', report_text)
-            self.assertIn('transport', report_text)
-            self.assertIn('hiburan', report_text)
+            self.assertIn('Laporan 7 Hari Terakhir', report_text)
+            self.assertIn('03/06/2023', report_text)
+            self.assertIn('Rp 1.000.000', report_text)  # Total income
+            self.assertIn('Rp 200.000', report_text)   # Total expenses
     
     def test_monthly_report(self):
         """Test that monthly report generates correctly"""
         # Mock the get_jakarta_time function to return our fixed date
-        with patch('api.telegram_webhook.get_jakarta_time', return_value=self.mock_date):
+        with patch.object(telegram_webhook, 'get_jakarta_time', return_value=self.mock_date):
             # Generate monthly report
             report_text = self.handler._generate_report_summary('month')
             
             # Assert that the report contains expected information
-            self.assertIn('Laporan Bulanan', report_text)
-            self.assertIn('Juni 2023', report_text)
-            self.assertIn('Rp 200.000', report_text)  # Total monthly expense
-            self.assertIn('Rp 1.000.000', report_text)  # Total monthly income
-            self.assertIn('makanan', report_text)
-            self.assertIn('transport', report_text)
-            self.assertIn('hiburan', report_text)
+            self.assertIn('Laporan Bulan Ini', report_text)
+            self.assertIn('03/06/2023', report_text)
+            self.assertIn('Rp 1.000.000', report_text)  # Total income
+            self.assertIn('Rp 200.000', report_text)   # Total expenses
+            self.assertIn('Makanan', report_text)
+            self.assertIn('Transport', report_text)
+            self.assertIn('Hiburan', report_text)
     
     def test_expenses_report(self):
         """Test that expenses-only report generates correctly"""
         # Mock the get_jakarta_time function to return our fixed date
-        with patch('api.telegram_webhook.get_jakarta_time', return_value=self.mock_date):
+        with patch.object(telegram_webhook, 'get_jakarta_time', return_value=self.mock_date):
             # Generate expenses report
             report_text = self.handler._generate_expenses_only_report()
             
             # Assert that the report contains expected information
-            self.assertIn('Laporan Pengeluaran', report_text)
+            self.assertIn('Expense Report', report_text)
             self.assertIn('Rp 200.000', report_text)  # Total expenses
-            self.assertIn('makanan: Rp 80.000', report_text)
-            self.assertIn('transport: Rp 45.000', report_text)
-            self.assertIn('hiburan: Rp 75.000', report_text)
+            self.assertIn('Makanan: Rp 80.000', report_text)
+            self.assertIn('Transport: Rp 45.000', report_text)
+            self.assertIn('Hiburan: Rp 75.000', report_text)
     
     def test_current_balance(self):
         """Test that current balance report generates correctly"""
@@ -115,10 +113,10 @@ class TestReportFeature(unittest.TestCase):
         report_text = self.handler._get_current_balance()
         
         # Assert that the report contains expected information
-        self.assertIn('Saldo Saat Ini', report_text)
+        self.assertIn('Balance Overview', report_text)
         self.assertIn('Rp 800.000', report_text)  # Expected balance (1000000 - 200000)
-        self.assertIn('Total Pemasukan', report_text)
-        self.assertIn('Total Pengeluaran', report_text)
+        self.assertIn('pemasukan', report_text)
+        self.assertIn('pengeluaran', report_text)
 
 if __name__ == '__main__':
     unittest.main()

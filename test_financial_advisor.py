@@ -109,7 +109,7 @@ class TestFinancialAdvisor(unittest.TestCase):
         
         # Test the budget recommendation
         with patch.object(advisor, '_get_ai_response', return_value=mock_response):
-            recommendation = advisor.get_budget_recommendation(user_data)
+            recommendation = advisor.get_budget_recommendation(5000000, user_data)
         
         # Assert that the recommendation contains appropriate budget categories
         self.assertEqual(recommendation, mock_response)
@@ -161,7 +161,7 @@ class TestFinancialAdvisor(unittest.TestCase):
         
         # Test the budget feasibility
         with patch.object(advisor, '_get_ai_response', return_value=mock_response):
-            assessment = advisor.check_budget_feasibility(budget, user_data)
+            assessment = advisor.check_budget_feasibility(5000000, 30, user_data)
         
         # Assert that the assessment contains appropriate feasibility information
         self.assertEqual(assessment, mock_response)
@@ -207,7 +207,7 @@ class TestFinancialAdvisor(unittest.TestCase):
         
         # Test the daily spending plan
         with patch.object(advisor, '_get_ai_response', return_value=mock_response):
-            plan = advisor.get_daily_spending_plan(user_data)
+            plan = advisor.get_daily_spending_plan(150000)
         
         # Assert that the plan contains appropriate daily spending information
         self.assertEqual(plan, mock_response)

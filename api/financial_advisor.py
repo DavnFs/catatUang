@@ -265,62 +265,62 @@ class FinancialAdvisor:
 
         return "\n".join(advice_lines)
 
-def get_monthly_advice(self, user_data: Dict) -> str:
-    """Generate monthly financial advice based on trends and targets"""
-    try:
-        total_income = user_data.get('total_income', 0)
-        total_expense = user_data.get('total_expense', 0)
-        categories = user_data.get('categories', {})  # misal {"makanan": 1200000, "transport": 500000}
-        carry_over = user_data.get('carry_over_balance', 0)
+    def get_monthly_advice(self, user_data: Dict) -> str:
+        """Generate monthly financial advice based on trends and targets"""
+        try:
+            total_income = user_data.get('total_income', 0)
+            total_expense = user_data.get('total_expense', 0)
+            categories = user_data.get('categories', {})  # misal {"makanan": 1200000, "transport": 500000}
+            carry_over = user_data.get('carry_over_balance', 0)
 
-        saving_target = 1_000_000
-        balance = total_income - total_expense
-        available_after_saving = max(0, balance - saving_target)
+            saving_target = 1_000_000
+            balance = total_income - total_expense
+            available_after_saving = max(0, balance - saving_target)
 
-        # Format angka
-        formatted_income = f"Rp {total_income:,.0f}".replace(",", ".")
-        formatted_expense = f"Rp {total_expense:,.0f}".replace(",", ".")
-        formatted_balance = f"Rp {balance:,.0f}".replace(",", ".")
-        formatted_saving = f"Rp {saving_target:,.0f}".replace(",", ".")
-        formatted_available = f"Rp {available_after_saving:,.0f}".replace(",", ".")
+            # Format angka
+            formatted_income = f"Rp {total_income:,.0f}".replace(",", ".")
+            formatted_expense = f"Rp {total_expense:,.0f}".replace(",", ".")
+            formatted_balance = f"Rp {balance:,.0f}".replace(",", ".")
+            formatted_saving = f"Rp {saving_target:,.0f}".replace(",", ".")
+            formatted_available = f"Rp {available_after_saving:,.0f}".replace(",", ".")
 
-        # Analisis proporsi kategori
-        insights = []
-        if total_expense > 0:
-            for cat, val in categories.items():
-                prop = (val / total_expense) * 100
-                if prop > 30:
-                    insights.append(f"⚠️ Pengeluaran {cat.title()} mencapai {prop:.1f}% dari total, cukup tinggi.")
-                elif prop > 20:
-                    insights.append(f"ℹ️ Pengeluaran {cat.title()} {prop:.1f}% — masih aman, tapi bisa dioptimalkan.")
+            # Analisis proporsi kategori
+            insights = []
+            if total_expense > 0:
+                for cat, val in categories.items():
+                    prop = (val / total_expense) * 100
+                    if prop > 30:
+                        insights.append(f"⚠️ Pengeluaran {cat.title()} mencapai {prop:.1f}% dari total, cukup tinggi.")
+                    elif prop > 20:
+                        insights.append(f"ℹ️ Pengeluaran {cat.title()} {prop:.1f}% — masih aman, tapi bisa dioptimalkan.")
 
-        # Tabungan
-        if balance < saving_target:
-            insights.append("⚠️ Saldo bulan ini belum mencapai target tabungan Rp 1.000.000. Prioritaskan kebutuhan pokok.")
-        else:
-            insights.append(f"✅ Kamu sudah bisa menabung Rp {saving_target:,} bulan ini.")
+            # Tabungan
+            if balance < saving_target:
+                insights.append("⚠️ Saldo bulan ini belum mencapai target tabungan Rp 1.000.000. Prioritaskan kebutuhan pokok.")
+            else:
+                insights.append(f"✅ Kamu sudah bisa menabung Rp {saving_target:,} bulan ini.")
 
-        # Buat teks final
-        msg = [
-            "📅 **Laporan Bulanan**",
-            f"💰 Total Pemasukan: {formatted_income}",
-            f"💸 Total Pengeluaran: {formatted_expense}",
-            f"📊 Saldo Akhir: {formatted_balance}",
-            f"💎 Target Tabungan: {formatted_saving}",
-            f"💵 Bisa Dipakai: {formatted_available}",
-            "",
-            "🔎 Insight Bulanan:"
-        ]
+            # Buat teks final
+            msg = [
+                "📅 **Laporan Bulanan**",
+                f"💰 Total Pemasukan: {formatted_income}",
+                f"💸 Total Pengeluaran: {formatted_expense}",
+                f"📊 Saldo Akhir: {formatted_balance}",
+                f"💎 Target Tabungan: {formatted_saving}",
+                f"💵 Bisa Dipakai: {formatted_available}",
+                "",
+                "🔎 Insight Bulanan:"
+            ]
 
-        if insights:
-            msg.extend(insights)
-        else:
-            msg.append("✅ Pengeluaran bulan ini masih dalam batas sehat (tidak ada kategori >20%).")
+            if insights:
+                msg.extend(insights)
+            else:
+                msg.append("✅ Pengeluaran bulan ini masih dalam batas sehat (tidak ada kategori >20%).")
 
-        return "\n".join(msg)
+            return "\n".join(msg)
 
-    except Exception as e:
-        return f"❌ Gagal membuat laporan bulanan: {str(e)}"
+        except Exception as e:
+            return f"❌ Gagal membuat laporan bulanan: {str(e)}"
 
 
     def get_monthly_analysis(self, user_data: Dict) -> str:
