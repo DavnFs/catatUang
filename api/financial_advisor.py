@@ -120,12 +120,16 @@ class FinancialAdvisor:
         # Load session and possibly populate memory
         session = self._load_session(user_id)
 
-        if not session.get('memory') and user_profile:
-            # create a short profile summary as memory
+        if user_profile:
+            # Always update memory with latest profile data
             try:
-                memory = self._prepare_user_context(user_profile)
+                # Use detailed context for better AI awareness
+                memory = self._prepare_detailed_context(user_profile)
             except Exception:
-                memory = ''
+                try:
+                    memory = self._prepare_user_context(user_profile)
+                except Exception:
+                    memory = ''
             session['memory'] = memory
 
         # Keep only last N messages
@@ -725,12 +729,7 @@ class FinancialAdvisor:
         
         return context
     
-    def _prepare_detailed_context(self, user_data: Dict) -> str:
-        """Prepare detailed context for comprehensive analysis"""
-        
-        # This would include more detailed spending patterns, trends, etc.
-        # Implementation depends on your data structure
-        return self._prepare_user_context(user_data)
+
     
     def _get_ai_response(self, prompt: str, verbose: bool = False, with_reasoning: bool = False) -> str:
         """Get response from selected AI provider.

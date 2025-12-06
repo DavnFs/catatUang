@@ -74,7 +74,23 @@ class handler(BaseHTTPRequestHandler):
                     if text.startswith('/'):
                         result = self._process_command(text, chat_id, username, first_name, user_id)
                     else:
-                        result = self._process_expense_message(text, f"{username}_{user_id}")
+                        # Check if it looks like an expense (starts with digit, +, or -)
+                        first_token = text.strip().split()[0]
+                        is_expense = False
+                        try:
+                            # Remove + or - and commas/dots
+                            clean_token = first_token.replace('+', '').replace('-', '').replace(',', '').replace('.', '')
+                            if clean_token.isdigit():
+                                is_expense = True
+                        except:
+                            pass
+                        
+                        if is_expense:
+                            result = self._process_expense_message(text, f"{username}_{user_id}")
+                        elif AI_ENABLED:
+                            result = self._process_chat_message(text, f"{username}_{user_id}", first_name)
+                        else:
+                            result = self._process_expense_message(text, f"{username}_{user_id}")
                     
                     # Send reply to Telegram
                     self._send_telegram_message(chat_id, result)
@@ -345,6 +361,22 @@ class handler(BaseHTTPRequestHandler):
                 
         except Exception as e:
             return f"❌ Error processing command: {str(e)}"
+
+    def _process_chat_message(self, text, user_id, first_name):
+        """Process natural language chat message using AI"""
+        try:
+            from api.financial_advisor import FinancialAdvisor
+            advisor = FinancialAdvisor()
+            
+            # Get user financial data for context
+            user_data = self._get_user_financial_data(user_id, include_historical=True)
+            
+            # Chat with AI
+            response = advisor.chat_with_user(user_id, text, user_data)
+            return response
+            
+        except Exception as e:
+            return f"❌ Maaf, saya sedang mengalami gangguan: {str(e)}"
 
     def _process_expense_message(self, text, user_id):
         """Process expense/income message and save to Google Sheets"""
